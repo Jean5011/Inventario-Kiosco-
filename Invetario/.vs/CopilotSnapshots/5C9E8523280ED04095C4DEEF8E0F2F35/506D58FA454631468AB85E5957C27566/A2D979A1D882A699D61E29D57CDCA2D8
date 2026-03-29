@@ -1,0 +1,56 @@
+﻿using Dapper;
+using Invetario.Models;
+using System.Linq;
+
+namespace Invetario.Data
+{
+    internal class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        public Producto ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Productos WHERE CodigoBarras = @codigo";
+                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+            }
+        }
+
+        public Usuario ValidarUsuario(string user, string pass)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
+                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+            }
+        }
+
+        public IEnumerable<Producto> ObtenerTodos()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Productos";
+                return db.Query<Producto>(sql).ToList();
+            }
+        }
+
+        public void Insertar(Producto producto)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "INSERT INTO Productos (CodigoBarras, Nombre, Precio, Stock) VALUES (@CodigoBarras, @Nombre, @Precio, @Stock)";
+                db.Execute(sql, producto);
+            }
+        }
+
+        public void Actualizar(Producto producto)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "UPDATE Productos SET Nombre = @Nombre, Precio = @Precio, Stock = @Stock WHERE CodigoBarras = @CodigoBarras";
+                db.Execute(sql, producto);
+            }
+        }
+    }
+}

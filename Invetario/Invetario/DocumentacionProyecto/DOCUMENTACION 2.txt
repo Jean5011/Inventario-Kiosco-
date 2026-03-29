@@ -1,0 +1,371 @@
+Documentación del Proyecto "Invetario" - Reporte 2
+Cambios realizados desde la Documentación 1
+
+================================================================================
+
+1. Problema Original Detectado (Sesión de depuración)
+
+   Excepción: Microsoft.Data.SqlClient.SqlException
+   Mensaje: Error relacionado con la red o específico de la instancia mientras
+   se establecía una conexión con SQL Server.
+   Inner Exception: Win32Exception - El sistema no puede encontrar el archivo
+   especificado.
+   Provider: Proveedor de canalizaciones con nombre, error: 40
+
+   Causa raíz: La cadena de conexión usaba Server=. (instancia predeterminada)
+   pero el equipo tiene SQL Server Express instalado como instancia con nombre.
+
+   Corrección en appsettings.json:
+   - Antes:  "Server=.;Database=KioscoDB;..."
+   - Después: "Server=.\\SQLEXPRESS;Database=KioscoDB;..."
+
+---
+
+2. Corrección de App.xaml.cs
+
+   Problema: La llave de cierre de la clase App estaba mal ubicada, dejando
+   el método OnStartup fuera de la clase.
+
+   Antes (incorrecto):
+       public partial class App : Application
+       {
+           }                              <-- cerraba la clase aquí
+       protected override void OnStartup  <-- quedaba fuera
+       ...
+
+   Después (correcto):
+       public partial class App : Application
+       {
+           protected override void OnStartup(StartupEventArgs e)
+           {
+               base.OnStartup(e);
+               LoginView login = new LoginView();
+               login.Show();
+           }
+       }
+
+---
+
+3. Corrección de App.xaml
+
+   Problema: Tenía StartupUri="MainWindow.xaml" que entraba en conflicto
+   con el OnStartup manual que abre LoginView.
+
+   Corrección: Se eliminó StartupUri y se agregó ShutdownMode="OnLastWindowClose".
+
+   Archivo final:
+       <Application x:Class="Invetario.App"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    ShutdownMode="OnLastWindowClose">
+           <Application.Resources>
+           </Application.Resources>
+       </Application>
+
+---
+
+4. Corrección de Namespaces XAML (xmlns) en múltiples archivos
+
+   Problema: Varios archivos XAML usaban el año 2000 en lugar de 2006 en
+   los namespaces XML, lo que impedía al compilador resolver los tipos WPF.
+
+   - Antes:  xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+   - Después: xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+
+   - Antes:  xmlns:x="http://schemas.microsoft.com/winfx/2000/xaml"
+   - Después: xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
+   Archivos afectados:
+   - LoginView.xaml
+   - MainWindow.xaml
+
+---
+
+5. Corrección de LoginView.xaml.cs
+
+   Problemas:
+   - Faltaba using Invetario.Models
+   - 8 sentencias using innecesarias
+
+   Archivo final:
+       using Invetario.Data;
+       using System.Windows;
+
+       namespace Invetario.Views
+       {
+           public partial class LoginView : Window
+           {
+               public LoginView()
+               {
+                   InitializeComponent();
+               }
+
+               private void btnLogin_Click(object sender, RoutedEventArgs e)
+               {
+                   var repo = new ProductoRepository();
+                   var usuarioLogueado = repo.ValidarUsuario(txtUser.Text, txtPass.Password);
+
+                   if (usuarioLogueado != null)
+                   {
+                       MainWindow principal = new MainWindow(usuarioLogueado);
+                       principal.Show();
+                       this.Close();
+                   }
+                   else
+                   {
+                       MessageBox.Show("Usuario o contraseña incorrectos", "Error",
+                           MessageBoxButton.OK, MessageBoxImage.Error);
+                   }
+               }
+           }
+       }
+
+---
+
+6. Corrección de MainWindow.xaml.cs
+
+   Problema: Había una clase MainWindow anidada dentro de sí misma, un campo
+   _viewModel obsoleto, y 10 sentencias using innecesarias.
+
+   Antes (incorrecto):
+       public partial class MainWindow : Window
+       {
+           private readonly MainViewModel _viewModel = new MainViewModel();
+
+           public partial class MainWindow : Window   <-- clase anidada duplicada
+           {
+               ...
+           }
+       }
+
+   Después (correcto):
+       using Invetario.Models;
+       using Invetario.Views;
+       using System.Windows;
+
+       namespace Invetario
+       {
+           public partial class MainWindow : Window
+           {
+               public Usuario UsuarioActual { get; set; }
+
+               public MainWindow(Usuario user)
+               {
+                   InitializeComponent();
+                   UsuarioActual = user;
+                   lblUsuario.Text = $"Hola, {UsuarioActual.Username}";
+
+                   if (UsuarioActual.Rol == "Admin")
+                       panelAdmin.Visibility = Visibility.Visible;
+
+                   MainFrame.Navigate(new VentasPage());
+               }
+
+               // Navegación por botones del menú lateral
+               private void btnVentas_Click(...) => MainFrame.Navigate(new VentasPage());
+               private void btnVerProductos_Click(...) => MainFrame.Navigate(new ListaProductosPage());
+               private void btnNuevoProducto_Click(...) => MainFrame.Navigate(new NuevoProductoPage());
+               private void btnModificar_Click(...) => MainFrame.Navigate(new ModificarProductoPage());
+
+               private void btnSalir_Click(...)
+               {
+                   LoginView login = new LoginView();
+                   login.Show();
+                   this.Close();
+               }
+           }
+       }
+
+---
+
+7. Corrección de Modelos - Accesibilidad (CS0051 / CS0053)
+
+   Problema: Los modelos eran internal class pero MainWindow (public) los
+   exponía en propiedades y constructores públicos.
+
+   Corrección:
+   - Producto.cs:     internal class -> public class
+   - Usuario.cs:      internal class -> public class
+   - Venta.cs:        internal class -> public class
+   - DetalleVenta.cs: internal class -> public class
+
+---
+
+8. Corrección de Modelos - Propiedades alineadas con la Base de Datos
+
+   Se descubrió que los modelos no coincidían con las tablas reales de la BD.
+   Se proporcionó el esquema SQL real:
+
+   Tabla Productos:
+   - Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock
+
+   Tabla Usuarios:
+   - Id, Username, Password, Rol, NombreReal
+
+   Tabla Ventas:
+   - Id, FechaVenta, TotalVenta, MetodoPago
+
+   Tabla DetalleVentas:
+   - Id, IdVenta, IdProducto, Cantidad, PrecioUnitario, Preciototal (calculada)
+
+   Modelos corregidos:
+
+       public class Producto
+       {
+           public int Id { get; set; }
+           public string CodigoBarras { get; set; } = string.Empty;
+           public string Nombre { get; set; } = string.Empty;
+           public string Descripcion { get; set; } = string.Empty;
+           public decimal PrecioCosto { get; set; }
+           public decimal PrecioVenta { get; set; }
+           public int Stock { get; set; }
+       }
+
+       public class Usuario
+       {
+           public int Id { get; set; }
+           public string Username { get; set; } = string.Empty;
+           public string Password { get; set; } = string.Empty;
+           public string Rol { get; set; } = string.Empty;
+           public string NombreReal { get; set; } = string.Empty;
+       }
+
+       public class Venta
+       {
+           public int Id { get; set; }
+           public DateTime FechaVenta { get; set; }
+           public decimal TotalVenta { get; set; }
+           public string MetodoPago { get; set; } = "Efectivo";
+       }
+
+       public class DetalleVenta
+       {
+           public int Id { get; set; }
+           public int IdVenta { get; set; }
+           public int IdProducto { get; set; }
+           public int Cantidad { get; set; }
+           public decimal PrecioUnitario { get; set; }
+           public decimal Preciototal { get; set; }
+       }
+
+---
+
+9. Nuevos métodos agregados a ProductoRepository.cs
+
+   Se añadieron 3 métodos que faltaban:
+
+   - ObtenerTodos(): SELECT * FROM Productos ORDER BY Nombre
+   - Insertar(Producto): INSERT con columnas CodigoBarras, Nombre,
+     Descripcion, PrecioCosto, PrecioVenta, Stock
+   - Actualizar(Producto): UPDATE con las mismas columnas, filtrado por
+     CodigoBarras
+
+   Se corrigieron los tipos de retorno a nullable:
+   - ObtenerPorCodigo() retorna Producto? (nullable)
+   - ValidarUsuario() retorna Usuario? (nullable)
+
+   Las consultas SQL se alinearon a las columnas reales de la BD
+   (PrecioVenta y PrecioCosto en lugar de Precio).
+
+---
+
+10. Eliminación de MainViewModel.cs
+
+    Se eliminó ViewModels/MainViewModel.cs porque era código muerto.
+    La lógica del carrito se movió directamente a VentasPage.xaml.cs.
+
+---
+
+11. Creación de 4 nuevas páginas (Views)
+
+    Se crearon las siguientes páginas para la navegación por Frame:
+
+    11.1 VentasPage.xaml / .xaml.cs
+    - Scanner de código de barras con campo txtScanner
+    - DataGrid dgCarrito con columnas: Código, Nombre, Precio
+    - Label lblTotal que muestra el total acumulado
+    - Lógica: al presionar Enter busca producto, lo agrega al carrito,
+      actualiza total, limpia y reenfoca el campo
+
+    11.2 ListaProductosPage.xaml / .xaml.cs
+    - DataGrid dgProductos con columnas: Código, Nombre, Precio, Stock
+    - Carga todos los productos al iniciar usando ObtenerTodos()
+
+    11.3 NuevoProductoPage.xaml / .xaml.cs
+    - Formulario con campos: Código, Nombre, Precio, Stock
+    - Validación de campos vacíos y tipos numéricos
+    - Guarda con Insertar() y limpia el formulario
+
+    11.4 ModificarProductoPage.xaml / .xaml.cs
+    - Campo de búsqueda por código de barras
+    - Muestra datos del producto encontrado
+    - Permite modificar Precio y Stock
+    - Guarda con Actualizar()
+    - Campo _productoActual es nullable (Producto?) para evitar CS8618
+
+---
+
+12. Corrección de ModificarProductoPage.xaml.cs (CS8618 / CS8625)
+
+    Problema: _productoActual era non-nullable, generaba warnings.
+    Corrección:
+    - Cambiado a Producto? _productoActual
+    - Agregada validación if (_productoActual == null) return en btnActualizar
+
+---
+
+13. Problemas pendientes identificados (no aplicados por bloqueo de VS)
+
+    Los siguientes cambios fueron diagnosticados pero no pudieron aplicarse
+    por limitaciones de lectura/escritura de archivos durante la sesión:
+
+    13.1 VentasPage.xaml
+    - DataGrid bindea a {Binding Precio}, debe ser {Binding PrecioVenta}
+
+    13.2 VentasPage.xaml.cs
+    - total += item.Precio debe ser total += item.PrecioVenta
+
+    13.3 ListaProductosPage.xaml
+    - DataGrid bindea a {Binding Precio}, debe ser {Binding PrecioVenta}
+
+    13.4 NuevoProductoPage.xaml / .xaml.cs
+    - Faltan campos Descripcion y PrecioCosto en el formulario
+    - El campo "Precio" debe dividirse en PrecioCosto y PrecioVenta
+
+    13.5 ModificarProductoPage.xaml / .xaml.cs
+    - Usa Precio en lugar de PrecioVenta y PrecioCosto
+
+    13.6 ProductoRepository.cs
+    - INSERT y UPDATE deben usar las columnas reales: CodigoBarras, Nombre,
+      Descripcion, PrecioCosto, PrecioVenta, Stock
+
+---
+
+14. Resumen de archivos modificados/creados
+
+    MODIFICADOS:
+    - appsettings.json          (cadena de conexión)
+    - App.xaml                  (eliminado StartupUri)
+    - App.xaml.cs               (llave mal ubicada)
+    - LoginView.xaml            (xmlns 2000 -> 2006)
+    - LoginView.xaml.cs         (usings limpiados)
+    - MainWindow.xaml           (xmlns 2000 -> 2006)
+    - MainWindow.xaml.cs        (clase anidada eliminada)
+    - Producto.cs               (internal -> public, propiedades BD)
+    - Usuario.cs                (internal -> public, agregado Rol y NombreReal)
+    - Venta.cs                  (propiedades alineadas a BD)
+    - DetalleVenta.cs           (propiedades alineadas a BD)
+    - ProductoRepository.cs     (nuevos métodos, SQL corregido)
+
+    CREADOS:
+    - VentasPage.xaml / .xaml.cs
+    - ListaProductosPage.xaml / .xaml.cs
+    - NuevoProductoPage.xaml / .xaml.cs
+    - ModificarProductoPage.xaml / .xaml.cs
+
+    ELIMINADOS:
+    - ViewModels/MainViewModel.cs (código muerto)
+
+================================================================================
+Documentación generada el: 2025-07-11 a las 03:45 (hora local del desarrollador)
+================================================================================

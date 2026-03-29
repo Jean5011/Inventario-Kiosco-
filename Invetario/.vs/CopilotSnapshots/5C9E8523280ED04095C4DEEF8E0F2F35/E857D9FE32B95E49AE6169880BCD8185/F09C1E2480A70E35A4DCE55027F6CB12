@@ -1,0 +1,57 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text;
+
+namespace Invetario.ViewModels
+{
+    internal class MainViewModel : INotifyPropertyChanged
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+
+        // Esta es la lista que se va a ver en la pantalla
+        public ObservableCollection<Producto> Carrito { get; set; } = new ObservableCollection<Producto>();
+
+        private decimal _total;
+        public decimal Total
+        {
+            get => _total;
+            set { _total = value; OnPropertyChanged(); }
+        }
+
+        // FUNCIÓN CLAVE: La que llama el escáner
+        public void AgregarProductoPorCodigo(string codigo)
+        {
+            var prod = _repo.ObtenerPorCodigo(codigo);
+            if (prod != null)
+            {
+                Carrito.Add(prod);
+                ActualizarTotal();
+            }
+            else
+            {
+                // Aquí podrías mandar un aviso: "Producto no encontrado"
+            }
+        }
+
+        private void ActualizarTotal()
+        {
+            Total = 0;
+            foreach (var item in Carrito)
+            {
+                Total += item.PrecioVenta;
+            }
+        }
+
+        // Esto es necesario en WPF para que la pantalla se entere de los cambios
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+    }
+}

@@ -1,0 +1,51 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+
+namespace Invetario.Views
+{
+    public partial class VentasPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+        private readonly ObservableCollection<Producto> _carrito = new ObservableCollection<Producto>();
+
+        public VentasPage()
+        {
+            InitializeComponent();
+            dgCarrito.ItemsSource = _carrito;
+        }
+
+        private void txtScanner_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                var prod = _repo.ObtenerPorCodigo(txtScanner.Text.Trim());
+                if (prod != null)
+                {
+                    _carrito.Add(prod);
+                    ActualizarTotal();
+                }
+                else
+                {
+                    MessageBox.Show("Producto no encontrado", "Aviso",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                txtScanner.Clear();
+                txtScanner.Focus();
+            }
+        }
+
+        private void ActualizarTotal()
+        {
+            decimal total = 0;
+            foreach (var item in _carrito)
+            {
+                total += item.Precio;
+            }
+            lblTotal.Text = $"Total: {total:C2}";
+        }
+    }
+}

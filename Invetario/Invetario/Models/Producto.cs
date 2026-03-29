@@ -1,0 +1,23 @@
+namespace Invetario.Models
+{
+    public class Producto
+    {
+        public int Id { get; set; }
+        public string CodigoBarras { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal PrecioCosto { get; set; }
+        public decimal PrecioVenta { get; set; }
+
+        /// <summary>
+        /// Alias para PrecioVenta (compatibilidad con vistas XAML)
+        /// </summary>
+        public decimal Precio
+        {
+            get => PrecioVenta;
+            set => PrecioVenta = value;
+        }
+
+        public int Stock { get; set; }
+    }
+}

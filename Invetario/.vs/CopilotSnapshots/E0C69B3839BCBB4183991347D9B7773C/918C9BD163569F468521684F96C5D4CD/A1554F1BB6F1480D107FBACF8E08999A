@@ -1,0 +1,19 @@
+﻿using Invetario.Models;
+using System.Linq;
+
+namespace Invetario.Data
+{
+    internal class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        public Producto ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Productos WHERE CodigoBarras = @codigo";
+                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+            }
+        }
+    }
+}

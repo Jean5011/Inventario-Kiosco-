@@ -1,0 +1,262 @@
+Documentación del Proyecto "Invetario"
+
+1. Información General
+
+- Nombre: Invetario
+- Tipo: Aplicación de escritorio WPF
+- Framework: .NET 10 (Windows)
+- ORM: Dapper (micro-ORM)
+- Base de Datos: SQL Server Express - KioscoDB
+- Patrón de diseño: MVVM (Model-View-ViewModel)
+
+---
+
+2. Estructura del Proyecto
+
+Invetario/
+├── App.xaml / App.xaml.cs              Punto de entrada de la aplicación WPF
+├── MainWindow.xaml / .xaml.cs          Ventana principal (Vista)
+├── appsettings.json                    Configuración (cadena de conexión)
+├── Invetario.csproj                    Archivo de proyecto .NET 10
+│
+├── Models/
+│   ├── Producto.cs                     Modelo de producto
+│   ├── Venta.cs                        Modelo de venta
+│   ├── DetalleVenta.cs                 Modelo de detalle de venta
+│   └── Usuario.cs                      Modelo de usuario
+│
+├── Data/
+│   ├── Conexion.cs                     Clase de conexión a SQL Server
+│   └── ProductoRepository.cs           Repositorio de acceso a datos
+│
+└── ViewModels/
+    └── MainViewModel.cs                ViewModel principal
+
+---
+
+3. Dependencias (NuGet)
+
+- Dapper: Micro-ORM para mapeo de consultas SQL a objetos .NET.
+- Microsoft.Data.SqlClient: Proveedor ADO.NET para SQL Server.
+- Microsoft.Extensions.Configuration: Lectura de configuración.
+- Microsoft.Extensions.Configuration.Json: Soporte para appsettings.json.
+- Microsoft.Extensions.Configuration.FileExtensions: Extensiones de archivos de configuración.
+
+---
+
+4. Capa de Datos
+
+4.1 Conexion.cs
+
+Clase encargada de establecer la conexión con SQL Server.
+
+- En el constructor lee la cadena de conexión desde appsettings.json usando
+  ConfigurationBuilder.
+- El método ObtenerConexion() devuelve un IDbConnection (SqlConnection) listo
+  para usar con Dapper.
+
+Código:
+
+    internal class Conexion
+    {
+        private readonly string _connectionString;
+
+        public Conexion()
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException(
+                    "No se encontró la cadena de conexión 'DefaultConnection' en appsettings.json");
+        }
+
+        public IDbConnection ObtenerConexion()
+        {
+            return new SqlConnection(_connectionString);
+        }
+    }
+
+4.2 ProductoRepository.cs
+
+Repositorio que contiene las consultas a la base de datos.
+
+Métodos:
+- ObtenerPorCodigo(string codigo): Busca un producto por su código de barras
+  en la tabla Productos.
+- ValidarUsuario(string user, string pass): Valida credenciales de usuario
+  contra la tabla Usuarios.
+
+Código:
+
+    internal class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        public Producto ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Productos WHERE CodigoBarras = @codigo";
+                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+            }
+        }
+
+        public Usuario ValidarUsuario(string user, string pass)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
+                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+            }
+        }
+    }
+
+---
+
+5. Capa ViewModel
+
+5.1 MainViewModel.cs
+
+Contiene la lógica de negocio de la ventana principal.
+
+Responsabilidades:
+- Mantiene una colección Carrito con los productos agregados.
+- Método AgregarProductoPorCodigo(string codigo): busca el producto en la base
+  de datos y lo agrega al carrito si existe.
+- Método ActualizarTotal(): recalcula el total de la venta.
+
+Código relevante:
+
+    public void AgregarProductoPorCodigo(string codigo)
+    {
+        var prod = _repo.ObtenerPorCodigo(codigo);
+        if (prod != null)
+        {
+            Carrito.Add(prod);
+            ActualizarTotal();
+        }
+        else
+        {
+            // Producto no encontrado
+        }
+    }
+
+---
+
+6. Capa Vista
+
+6.1 MainWindow.xaml.cs
+
+Ventana principal de la aplicación. Contiene un campo de texto (txtScanner)
+diseñado para recibir la entrada de un lector de código de barras.
+
+Comportamiento:
+- Al presionar Enter en txtScanner, se busca el producto por código de barras.
+- Si se encuentra, se agrega al carrito.
+- El campo se limpia y se reenfoca automáticamente para la siguiente lectura.
+
+Código:
+
+    private void txtScanner_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _viewModel.AgregarProductoPorCodigo(txtScanner.Text);
+            txtScanner.Clear();
+            txtScanner.Focus();
+        }
+    }
+
+---
+
+7. Configuración
+
+appsettings.json
+
+Archivo de configuración que contiene la cadena de conexión a la base de datos.
+
+    {
+      "ConnectionStrings": {
+        "DefaultConnection": "Server=.\\SQLEXPRESS;Database=KioscoDB;Trusted_Connection=True;TrustServerCertificate=True;"
+      }
+    }
+
+Nota: Es importante que el archivo .csproj incluya la directiva para copiar
+appsettings.json al directorio de salida durante la compilación:
+
+    <ItemGroup>
+      <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+---
+
+8. Esquema de Base de Datos (inferido del código)
+
+Tabla Productos:
+- CodigoBarras: Identificador escaneado por el lector.
+- (otras columnas): Mapeadas al modelo Producto.
+
+Tabla Usuarios:
+- Username: Nombre de usuario.
+- Password: Contraseña (texto plano).
+
+---
+
+9. Modelos
+
+Los modelos se encuentran en la carpeta Models/.
+
+- Producto     -> Tabla Productos       -> Artículo del inventario con código de barras.
+- Usuario      -> Tabla Usuarios        -> Autenticación de usuarios del sistema.
+- Venta        -> Tabla Ventas          -> Registro de transacciones de venta.
+- DetalleVenta -> Tabla DetalleVentas   -> Líneas individuales de cada venta.
+
+---
+
+10. Flujo Principal de la Aplicación
+
+1. El usuario escanea un código de barras con el lector (o escribe manualmente).
+2. El texto se introduce en el campo txtScanner de MainWindow.
+3. Al presionar Enter, se invoca MainViewModel.AgregarProductoPorCodigo().
+4. El ViewModel llama a ProductoRepository.ObtenerPorCodigo() que ejecuta
+   una consulta SQL contra la tabla Productos usando Dapper.
+5. Si el producto existe, se agrega a la colección Carrito y se actualiza
+   el total.
+6. El campo txtScanner se limpia y queda listo para la siguiente lectura.
+
+Diagrama:
+
+    [txtScanner] --Enter--> [MainViewModel] --SQL--> [ProductoRepository]
+         |                  AgregarProducto           ObtenerPorCodigo()
+         |                  PorCodigo()                      |
+         |                       |                           v
+         |                  [Carrito]                  [SQL Server]
+         |                  ActualizarTotal()          [KioscoDB]
+         v
+    (limpia y reenfoca)
+
+---
+
+11. Observaciones y Recomendaciones
+
+1. Seguridad de contraseñas: Actualmente las contraseñas se almacenan y
+   comparan en texto plano. Se recomienda implementar hashing con BCrypt
+   o similar.
+
+2. Manejo de errores: No hay try-catch en las consultas a base de datos.
+   Si la conexión falla, la excepción se propaga sin control hasta la UI.
+
+3. Cadena de conexión: Se corrigió de Server=. a Server=.\SQLEXPRESS para
+   apuntar a la instancia correcta de SQL Server Express.
+
+4. Copia de appsettings.json: Verificar que el archivo se copie al
+   directorio de salida durante la compilación (ver sección 7).
+
+================================================================================
+Documentación generada el: 2025-07-11 a las 02:30 (hora local del desarrollador)
+================================================================================

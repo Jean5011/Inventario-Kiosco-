@@ -1,0 +1,21 @@
+﻿using Invetario.Data;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ListaProductosPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+
+        public ListaProductosPage()
+        {
+            InitializeComponent();
+            CargarProductos();
+        }
+
+        private void CargarProductos()
+        {
+            dgProductos.ItemsSource = _repo.ObtenerTodos();
+        }
+    }
+}

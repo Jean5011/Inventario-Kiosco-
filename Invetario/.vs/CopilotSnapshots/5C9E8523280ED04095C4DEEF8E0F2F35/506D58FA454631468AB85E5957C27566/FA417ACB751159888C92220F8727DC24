@@ -1,0 +1,35 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Windows;
+
+namespace Invetario.Views
+{
+    /// <summary>
+    /// Lógica de interacción para LoginView.xaml
+    /// </summary>
+    public partial class LoginView : Window
+    {
+        public LoginView()
+        {
+            InitializeComponent();
+
+        }
+        private void btnLogin_Click(object sender, RoutedEventArgs e)
+        {
+            var repo = new ProductoRepository(); // Usamos el que ya tenés documentado
+            var usuarioLogueado = repo.ValidarUsuario(txtUser.Text, txtPass.Password);
+
+            if (usuarioLogueado != null)
+            {
+                // Si el usuario existe, abrimos la principal
+                MainWindow principal = new MainWindow(usuarioLogueado);
+                principal.Show();
+                this.Close(); // Cerramos el login
+            }
+            else
+            {
+                MessageBox.Show("Usuario o contraseña incorrectos", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}

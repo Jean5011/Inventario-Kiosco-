@@ -1,0 +1,13 @@
+﻿namespace Invetario.Models
+{
+    public class Producto
+    {
+        public int Id { get; set; }
+        public string CodigoBarras { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public decimal PrecioCosto { get; set; }
+        public decimal PrecioVenta { get; set; }
+        public int Stock { get; set; }
+    }
+}

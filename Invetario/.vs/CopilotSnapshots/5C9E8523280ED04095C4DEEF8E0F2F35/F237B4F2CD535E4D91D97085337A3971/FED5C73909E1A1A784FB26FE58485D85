@@ -1,0 +1,16 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Invetario.Models
+{
+    internal class Venta
+    {
+        public int Id { get; set; }
+        public DateTime FechaVenta { get; set; }
+        public decimal CostoVenta { get; set; }
+        public string MetodoPago { get; set; }
+        // Tip: Agregá esta para lo que paga el cliente
+        public decimal TotalVenta { get; set; }
+    }
+}

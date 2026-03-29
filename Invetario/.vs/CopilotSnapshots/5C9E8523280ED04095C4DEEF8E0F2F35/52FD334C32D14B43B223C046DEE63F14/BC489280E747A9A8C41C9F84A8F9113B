@@ -1,0 +1,5 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=.;Database=KioscoDB;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}

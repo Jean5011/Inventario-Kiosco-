@@ -1,0 +1,68 @@
+﻿using Dapper;
+using Invetario.Models;
+using Invetario.Data;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Invetario.Data
+{
+    public class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        [cite_start]// 1. Buscar producto por código (Para el Escáner) [cite: 47, 48]
+        public Producto? ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                [cite_start]// Usamos las columnas reales: PrecioVenta y PrecioCosto [cite: 27]
+                string sql = "SELECT * FROM Productos WHERE CodigoBarras = @codigo";
+                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+            }
+        }
+
+        [cite_start]// 2. Validar Usuario (Para el Login) [cite: 47, 48]
+        public Usuario? ValidarUsuario(string user, string pass)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
+                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+            }
+        }
+
+        [cite_start]// 3. Obtener todos los productos (Para la Lista) [cite: 47]
+        public IEnumerable<Producto> ObtenerTodos()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Productos ORDER BY Nombre ASC";
+                return db.Query<Producto>(sql);
+            }
+        }
+
+        [cite_start]// 4. Insertar nuevo producto (Con todas las columnas) [cite: 47, 48]
+        public void Insertar(Producto p)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"INSERT INTO Productos (CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock) 
+                             VALUES (@CodigoBarras, @Nombre, @Descripcion, @PrecioCosto, @PrecioVenta, @Stock)";
+                db.Execute(sql, p);
+            }
+        }
+
+        [cite_start]// 5. Actualizar producto existente [cite: 47, 48]
+        public void Actualizar(Producto p)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"UPDATE Productos 
+                             SET Nombre = @Nombre, Descripcion = @Descripcion, 
+                                 PrecioCosto = @PrecioCosto, PrecioVenta = @PrecioVenta, Stock = @Stock 
+                             WHERE CodigoBarras = @CodigoBarras";
+                db.Execute(sql, p);
+            }
+        }
+    }
+}

@@ -1,0 +1,56 @@
+using Invetario.Data;
+using Invetario.Models;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class NuevoProductoPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+
+        public NuevoProductoPage()
+        {
+            InitializeComponent();
+        }
+
+        private void btnGuardar_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtCodigo.Text) ||
+                string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtPrecio.Text) ||
+                string.IsNullOrWhiteSpace(txtStock.Text))
+            {
+                MessageBox.Show("Todos los campos son obligatorios", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio) ||
+                !int.TryParse(txtStock.Text, out int stock))
+            {
+                MessageBox.Show("Precio y Stock deben ser valores numéricos", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var producto = new Producto
+            {
+                CodigoBarras = txtCodigo.Text.Trim(),
+                Nombre = txtNombre.Text.Trim(),
+                Precio = precio,
+                Stock = stock
+            };
+
+            _repo.Insertar(producto);
+            MessageBox.Show("Producto guardado correctamente", "Éxito",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+
+            txtCodigo.Clear();
+            txtNombre.Clear();
+            txtPrecio.Clear();
+            txtStock.Clear();
+            txtCodigo.Focus();
+        }
+    }
+}

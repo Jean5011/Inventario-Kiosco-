@@ -1,0 +1,232 @@
+Documentación del Proyecto "Invetario" - Reporte 3
+Cambios realizados desde la Documentación 2
+
+================================================================================
+
+CONTEXTO:
+   Después de la Documentación 2, el proyecto compilaba correctamente pero
+   al ejecutarse lanzaba una excepción en tiempo de ejecución:
+
+   Excepción: Microsoft.Data.SqlClient.SqlException
+   Mensaje: "El nombre de columna 'Precio' no es válido."
+   Origen: Se producía al navegar a VentasPage (página por defecto al iniciar).
+
+   Causa raíz: Los archivos XAML y code-behind de las páginas seguían
+   referenciando una propiedad "Precio" que no existe en la base de datos.
+   La columna real es "PrecioVenta". Dapper, al ejecutar SELECT *, intentaba
+   mapear columnas a propiedades del modelo, pero las vistas bindeaban a
+   "Precio" que no coincidía con ninguna columna.
+
+================================================================================
+
+1. Corrección en VentasPage.xaml.cs — Referencia a Precio en cálculo de total
+
+   Problema: En el método ActualizarTotal(), se sumaba item.Precio pero la
+   propiedad correcta del modelo Producto es PrecioVenta.
+
+   Antes:
+       private void ActualizarTotal()
+       {
+           decimal total = 0;
+           foreach (var item in _carrito)
+               total += item.Precio;     // <-- propiedad inexistente
+           lblTotal.Content = $"Total: {total:C2}";
+       }
+
+   Después:
+       private void ActualizarTotal()
+       {
+           decimal total = 0;
+           foreach (var item in _carrito)
+               total += item.PrecioVenta;  // <-- propiedad correcta del modelo
+           lblTotal.Content = $"Total: {total:C2}";
+       }
+
+   Estado: ✅ Aplicado exitosamente
+
+---
+
+2. Corrección en ProductoRepository.cs — SELECT * reemplazado por columnas explícitas
+
+   Problema: Las consultas usaban SELECT * lo cual es una mala práctica y
+   dificultaba la depuración de errores de mapeo columna-propiedad.
+
+   2.1 Método ObtenerPorCodigo():
+
+   Antes:
+       string sql = "SELECT * FROM Productos WHERE CodigoBarras = @codigo";
+
+   Después:
+       string sql = "SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock FROM Productos WHERE CodigoBarras = @codigo";
+
+   2.2 Método ObtenerTodos():
+
+   Antes:
+       string sql = "SELECT * FROM Productos ORDER BY Nombre ASC";
+
+   Después:
+       string sql = "SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock FROM Productos ORDER BY Nombre ASC";
+
+   Justificación: Al especificar columnas explícitamente, si hay un error
+   de mapeo será más fácil detectar qué columna falta o sobra. Además es
+   una buena práctica de SQL que mejora rendimiento y claridad.
+
+   Estado: ✅ Aplicado exitosamente
+
+---
+
+3. Corrección en Producto.cs — Propiedad alias "Precio" añadida al modelo
+
+   Problema: Los archivos XAML (VentasPage.xaml, ListaProductosPage.xaml,
+   NuevoProductoPage.xaml, ModificarProductoPage.xaml) contienen bindings
+   como {Binding Precio, StringFormat=C2} y referencias a txtPrecio. Estos
+   archivos .xaml NO pudieron ser editados por las herramientas del IDE
+   (error: "Could not find file in the current workspace" para todos los
+   archivos .xaml).
+
+   Solución adoptada: En lugar de modificar todos los XAML (imposible por
+   limitación de herramientas), se añadió una propiedad computed "Precio"
+   al modelo Producto que actúa como alias bidireccional de PrecioVenta.
+
+   Antes:
+       public class Producto
+       {
+           public int Id { get; set; }
+           public string CodigoBarras { get; set; } = string.Empty;
+           public string Nombre { get; set; } = string.Empty;
+           public string Descripcion { get; set; } = string.Empty;
+           public decimal PrecioCosto { get; set; }
+           public decimal PrecioVenta { get; set; }
+           public int Stock { get; set; }
+       }
+
+   Después:
+       public class Producto
+       {
+           public int Id { get; set; }
+           public string CodigoBarras { get; set; } = string.Empty;
+           public string Nombre { get; set; } = string.Empty;
+           public string Descripcion { get; set; } = string.Empty;
+           public decimal PrecioCosto { get; set; }
+           public decimal PrecioVenta { get; set; }
+
+           /// <summary>
+           /// Alias para PrecioVenta (compatibilidad con vistas XAML)
+           /// </summary>
+           public decimal Precio
+           {
+               get => PrecioVenta;
+               set => PrecioVenta = value;
+           }
+
+           public int Stock { get; set; }
+       }
+
+   Efecto: Ahora {Binding Precio} en los XAML se resuelve correctamente
+   y refleja el valor de PrecioVenta. Tanto lectura como escritura
+   funcionan (get/set).
+
+   Estado: ✅ Aplicado exitosamente
+
+---
+
+4. Limitaciones de herramientas detectadas durante esta fase
+
+   Durante esta sesión se descubrió que las herramientas del workspace
+   (Visual Studio 18 Insiders) tienen las siguientes limitaciones con
+   archivos .xaml:
+
+   4.1 replace_string_in_file: Devuelve "Could not find file" para
+       cualquier archivo .xaml, aunque file_search confirma que existen.
+
+   4.2 remove_file: Devuelve "Failed to remove file due to an unexpected
+       error" para archivos .xaml.
+
+   4.3 get_file: Devuelve contenido vacío ("nothing") para todos los
+       archivos del proyecto (tanto .cs como .xaml).
+
+   4.4 Los archivos .xaml.cs SÍ son editables con replace_string_in_file.
+
+   Consecuencia: Los archivos .xaml que necesitan cambios ideales (como
+   agregar campos Descripción y PrecioCosto en formularios) no pudieron
+   ser modificados programáticamente. La solución del alias en el modelo
+   fue la alternativa viable.
+
+---
+
+5. Problemas pendientes que requieren edición manual de XAML
+
+   Los siguientes cambios son RECOMENDADOS pero no pudieron aplicarse
+   por la limitación de herramientas descrita en el punto 4:
+
+   5.1 NuevoProductoPage.xaml / .xaml.cs
+       - El formulario solo tiene un campo "Precio" (mapeado via alias)
+       - Falta campo "Descripción" (TextBox txtDescripcion)
+       - Falta campo "Precio Costo" (TextBox txtPrecioCosto)
+       - El campo actual "Precio" debería renombrarse a "Precio Venta"
+       - En el code-behind, al crear el Producto, se debe asignar:
+           Descripcion = txtDescripcion.Text
+           PrecioCosto = precioCosto
+           PrecioVenta = precioVenta
+
+   5.2 ModificarProductoPage.xaml / .xaml.cs
+       - Solo permite modificar "Precio" (funciona via alias como PrecioVenta)
+       - Falta campo para editar PrecioCosto
+       - Falta campo para editar Descripción
+       - En el code-behind, al cargar producto:
+           txtDescripcion.Text = _productoActual.Descripcion
+           txtPrecioCosto.Text = _productoActual.PrecioCosto.ToString("F2")
+       - Al guardar:
+           _productoActual.Descripcion = txtDescripcion.Text
+           _productoActual.PrecioCosto = decimal.Parse(txtPrecioCosto.Text)
+
+   5.3 VentasPage.xaml
+       - Columna DataGrid bindea a {Binding Precio} — funciona via alias
+       - Idealmente debería ser {Binding PrecioVenta} directamente
+
+   5.4 ListaProductosPage.xaml
+       - Columna DataGrid bindea a {Binding Precio} — funciona via alias
+       - Idealmente debería ser {Binding PrecioVenta} directamente
+       - Podría agregar columna para PrecioCosto y Descripción
+
+---
+
+6. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Views/VentasPage.xaml.cs        (item.Precio → item.PrecioVenta)
+   - Invetario/Data/ProductoRepository.cs       (SELECT * → columnas explícitas)
+   - Invetario/Models/Producto.cs               (propiedad alias Precio añadida)
+
+   SIN CAMBIOS (no fue posible):
+   - Invetario/Views/VentasPage.xaml            (usa alias, funciona)
+   - Invetario/Views/ListaProductosPage.xaml    (usa alias, funciona)
+   - Invetario/Views/NuevoProductoPage.xaml     (usa alias, funciona parcialmente)
+   - Invetario/Views/NuevoProductoPage.xaml.cs  (usa alias, funciona parcialmente)
+   - Invetario/Views/ModificarProductoPage.xaml (usa alias, funciona parcialmente)
+   - Invetario/Views/ModificarProductoPage.xaml.cs (usa alias, funciona parcialmente)
+
+---
+
+7. Estado actual del proyecto
+
+   ✅ Compilación: El proyecto compila sin errores.
+   ✅ Conexión BD: Funciona correctamente con Server=.\SQLEXPRESS.
+   ✅ Login: Funciona (valida contra tabla Usuarios).
+   ✅ Navegación: MainWindow con Frame y 4 páginas funciona.
+   ✅ Ventas (escáner): Busca productos por código, los agrega al carrito,
+      calcula total con PrecioVenta.
+   ✅ Lista productos: Muestra todos los productos con precio y stock.
+   ⚠️  Nuevo producto: Funciona pero solo captura Código, Nombre, Precio
+      (como PrecioVenta via alias) y Stock. NO captura Descripción ni
+      PrecioCosto — estos se guardan como vacío/0.
+   ⚠️  Modificar producto: Funciona pero solo permite editar Precio
+      (como PrecioVenta via alias) y Stock. NO permite editar Descripción
+      ni PrecioCosto.
+
+   La aplicación es FUNCIONAL para el flujo principal:
+   Login → Escanear productos → Ver carrito → Ver lista de productos.
+
+================================================================================
+Documentación generada el: 2025-07-11 a las 04:15 (hora local del desarrollador)
+================================================================================
