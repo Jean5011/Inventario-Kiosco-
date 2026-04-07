@@ -6,9 +6,23 @@
         <StackPanel>
             <TextBlock Text="📦 Lista de Productos" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
 
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                <TextBlock Text="🔍 Buscar Producto:" VerticalAlignment="Center" FontSize="16" FontWeight="Bold" Margin="0,0,10,0"/>
+                <TextBox x:Name="txtFiltro" Width="300" Height="30" FontSize="16" 
+             VerticalContentAlignment="Center" TextChanged="txtFiltro_TextChanged"/>
+            </StackPanel>
+
             <DataGrid x:Name="dgProductos" AutoGenerateColumns="False"
                       Height="450" IsReadOnly="True">
                 <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Acción">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="🛒 Vender" Click="btnVenderDesdeLista_Click" 
+                    Background="#27ae60" Foreground="White" Padding="10,2" FontWeight="Bold"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Código" Binding="{Binding CodigoBarras}" Width="150"/>
                     <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
                     <DataGridTextColumn Header="Precio" Binding="{Binding Precio, StringFormat=C2}" Width="100"/>

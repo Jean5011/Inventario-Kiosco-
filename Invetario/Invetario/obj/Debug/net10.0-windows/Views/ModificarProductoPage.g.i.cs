@@ -92,7 +92,7 @@ namespace Invetario.Views {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/Invetario;component/views/modificarproductopage.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/Invetario;V1.0.0.0;component/views/modificarproductopage.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Views\ModificarProductoPage.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

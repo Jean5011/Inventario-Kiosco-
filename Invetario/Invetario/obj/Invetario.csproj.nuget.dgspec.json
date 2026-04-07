@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\Invetario.csproj": {}
+    "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\Invetario.csproj": {
+    "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\Invetario.csproj",
+        "projectUniqueName": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj",
         "projectName": "Invetario",
-        "projectPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\Invetario.csproj",
+        "projectPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj",
         "packagesPath": "C:\\Users\\jeanp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\obj\\",
+        "outputPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

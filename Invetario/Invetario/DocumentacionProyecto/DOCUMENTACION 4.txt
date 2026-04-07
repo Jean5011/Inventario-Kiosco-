@@ -1,0 +1,112 @@
+Documentación del Proyecto "Invetario" - Reporte 4
+Cambios realizados después de la Documentación 3
+
+================================================================================
+
+CONTEXTO:
+   Después de la Documentación 3 se trabajó sobre el flujo de venta desde la
+   lista de productos y la visualización de cantidades en el carrito de Ventas.
+
+================================================================================
+
+1. Corrección del botón "🛒 Vender" desde ListaProductosPage
+
+   Problema reportado:
+   - El botón de venta dentro del DataGrid de ListaProductosPage no estaba
+     enviando correctamente el producto a la pantalla Ventas.
+
+   Causa raíz:
+   - El evento btnVenderDesdeLista_Click dependía de
+     Application.Current.MainWindow para obtener la ventana principal.
+   - En este escenario, esa referencia no era confiable para recuperar la
+     instancia contenedora correcta.
+
+   Solución aplicada:
+   - Se cambió la obtención de ventana a Window.GetWindow(this), que devuelve
+     la ventana real que contiene la página actual.
+
+   Antes (resumen):
+       if (Application.Current.MainWindow is MainWindow main)
+           main.EnviarProductoAVentas(productoSeleccionado);
+
+   Después (resumen):
+       if (Window.GetWindow(this) is MainWindow main)
+           main.EnviarProductoAVentas(productoSeleccionado);
+
+   Archivo modificado:
+   - Invetario/Views/ListaProductosPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+2. Mejora del carrito en Ventas: acumulación de cantidad por producto
+
+   Requerimiento:
+   - Al agregar el mismo producto en Ventas, se debe mostrar/aumentar la
+     cantidad en lugar de crear filas duplicadas.
+
+   Cambios aplicados:
+
+   2.1 Modelo Producto
+   - Se agregó la propiedad Cantidad con valor inicial 1.
+   - Se agregó la propiedad calculada Subtotal = PrecioVenta * Cantidad.
+
+   Archivo modificado:
+   - Invetario/Models/Producto.cs
+
+   2.2 Lógica de VentasPage
+   - Se actualizó AgregarAlCarrito(Producto p) para:
+       a) Buscar si el producto ya existe en _carrito por CodigoBarras o Id.
+       b) Si existe: incrementar Cantidad.
+       c) Si no existe: agregar nueva fila con Cantidad = 1.
+   - Se actualizó ActualizarTotal() para sumar Subtotal de cada ítem,
+     en lugar de sumar solo PrecioVenta unitario.
+   - Se ajustó AgregarProductoDesdeAfuera() para reutilizar la misma lógica de
+     AgregarAlCarrito(), manteniendo comportamiento consistente.
+
+   Archivo modificado:
+   - Invetario/Views/VentasPage.xaml.cs
+
+   Resultado funcional:
+   - El DataGrid de Ventas ahora refleja correctamente la columna Cantidad para
+     productos repetidos.
+   - El Subtotal por fila y el total general se actualizan correctamente.
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+3. Validación técnica
+
+   - Se ejecutó compilación completa después de los cambios.
+   - Resultado: Compilación correcta, sin errores.
+
+   Estado: ✅ Validado
+
+---
+
+4. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Views/ListaProductosPage.xaml.cs
+   - Invetario/Models/Producto.cs
+   - Invetario/Views/VentasPage.xaml.cs
+
+   NUEVOS:
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 4.txt
+
+---
+
+5. Estado actual del flujo principal (actualizado)
+
+   ✅ Login: Funciona
+   ✅ Navegación entre páginas: Funciona
+   ✅ Lista de productos: Funciona
+   ✅ Botón "🛒 Vender" desde lista: Funciona y envía correctamente a Ventas
+   ✅ Ventas: Acumula cantidad del mismo producto en una sola fila
+   ✅ Cálculo total: Correcto usando subtotal por cantidad
+
+================================================================================
+Documentación generada el: 2026-04-07 a las 18:46:37 (hora local del desarrollador)
+================================================================================

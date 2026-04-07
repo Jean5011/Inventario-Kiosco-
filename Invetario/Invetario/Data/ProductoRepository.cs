@@ -62,5 +62,25 @@ namespace Invetario.Data
                 db.Execute(sql, p);
             }
         }
+
+
+        // Busca por Código Exacto, ID Exacto, o Coincidencia de Nombre
+        public IEnumerable<Producto> BuscarProductos(string filtro)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Intentamos convertir el filtro a número para buscar por ID
+                int.TryParse(filtro, out int idBuscado);
+
+                string sql = @"SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock 
+                       FROM Productos 
+                       WHERE CodigoBarras = @filtro 
+                          OR Id = @idBuscado 
+                          OR Nombre LIKE '%' + @filtro + '%'
+                       ORDER BY Nombre ASC";
+
+                return db.Query<Producto>(sql, new { filtro, idBuscado });
+            }
+        }
     }
 }

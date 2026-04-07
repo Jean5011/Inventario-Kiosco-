@@ -1,4 +1,7 @@
 using Invetario.Data;
+using Invetario.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Controls;
 
 namespace Invetario.Views
@@ -6,6 +9,7 @@ namespace Invetario.Views
     public partial class ListaProductosPage : Page
     {
         private readonly ProductoRepository _repo = new ProductoRepository();
+        private List<Producto> _todosLosProductos = new List<Producto>();
 
         public ListaProductosPage()
         {
@@ -15,7 +19,33 @@ namespace Invetario.Views
 
         private void CargarProductos()
         {
-            dgProductos.ItemsSource = _repo.ObtenerTodos();
+            // Cargamos todos una sola vez
+            _todosLosProductos = _repo.ObtenerTodos().ToList();
+            dgProductos.ItemsSource = _todosLosProductos;
+        }
+
+        private void txtFiltro_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string texto = txtFiltro.Text.ToLower();
+
+            // Filtramos en memoria (C# puro)
+            var filtrados = _todosLosProductos.Where(p =>
+                p.Nombre.ToLower().Contains(texto) ||
+                p.CodigoBarras == texto ||
+                p.Id.ToString() == texto).ToList();
+
+            dgProductos.ItemsSource = filtrados;
+        }
+
+        private void btnVenderDesdeLista_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Producto productoSeleccionado)
+            {
+                if (System.Windows.Application.Current.MainWindow is MainWindow main)
+                {
+                    main.EnviarProductoAVentas(productoSeleccionado);
+                }
+            }
         }
     }
 }

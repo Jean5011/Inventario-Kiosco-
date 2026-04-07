@@ -16,6 +16,8 @@
                     <DataGridTextColumn Header="Código" Binding="{Binding CodigoBarras}" Width="150"/>
                     <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
                     <DataGridTextColumn Header="Precio" Binding="{Binding Precio, StringFormat=C2}" Width="100"/>
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" Width="80"/>
+                    <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal, StringFormat=C2}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
 

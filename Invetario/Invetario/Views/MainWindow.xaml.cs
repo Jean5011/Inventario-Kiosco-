@@ -8,25 +8,42 @@ namespace Invetario
     {
         public Usuario UsuarioActual { get; set; }
 
+        // 1. Declaramos las páginas a nivel de clase para que no se borren
+        private VentasPage _ventasPage;
+        private ListaProductosPage _listaProductosPage;
+
         public MainWindow(Usuario user)
         {
             InitializeComponent();
             UsuarioActual = user;
-
             lblUsuario.Text = $"Hola, {UsuarioActual.Username}";
 
             if (UsuarioActual.Rol == "Admin")
-            {
                 panelAdmin.Visibility = Visibility.Visible;
-            }
 
-            MainFrame.Navigate(new VentasPage());
+            // 2. Inicializamos las páginas UNA SOLA VEZ
+            _ventasPage = new VentasPage();
+            _listaProductosPage = new ListaProductosPage();
+
+            // 3. Arrancamos navegando a la instancia guardada
+            MainFrame.Navigate(_ventasPage);
         }
 
-        private void btnVentas_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(new VentasPage());
-        private void btnVerProductos_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(new ListaProductosPage());
+        // 4. Cambiamos la navegación para usar las instancias guardadas en vez de "new"
+        private void btnVentas_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(_ventasPage);
+        private void btnVerProductos_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(_listaProductosPage);
+
         private void btnNuevoProducto_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(new NuevoProductoPage());
         private void btnModificar_Click(object sender, RoutedEventArgs e) => MainFrame.Navigate(new ModificarProductoPage());
+
+        // ====================================================================
+        // MÉTODO PUENTE: Recibe el producto de la lista y lo manda a Ventas
+        // ====================================================================
+        public void EnviarProductoAVentas(Producto p)
+        {
+            _ventasPage.AgregarProductoDesdeAfuera(p);
+            MainFrame.Navigate(_ventasPage); // Te lleva automáticamente a la pantalla de ventas
+        }
 
         private void btnSalir_Click(object sender, RoutedEventArgs e)
         {

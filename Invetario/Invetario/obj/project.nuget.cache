@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "lzYG+rAmqBA=",
+  "dgSpecHash": "MIyxOegnJLc=",
   "success": true,
-  "projectFilePath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario\\Invetario\\Invetario\\Invetario.csproj",
+  "projectFilePath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jeanp\\.nuget\\packages\\dapper\\2.1.72\\dapper.2.1.72.nupkg.sha512",
     "C:\\Users\\jeanp\\.nuget\\packages\\microsoft.bcl.cryptography\\9.0.13\\microsoft.bcl.cryptography.9.0.13.nupkg.sha512",
