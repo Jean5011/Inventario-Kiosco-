@@ -1,0 +1,39 @@
+﻿<Window x:Class="Invetario.Views.NuevoUsuarioWindow" Icon="/icono.png"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:Invetario.Converters"
+        Title="Nuevo Usuario" Height="500" Width="400"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="White">
+    <Grid Margin="20">
+        <StackPanel Width="300" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="Agregar Nuevo Usuario" FontSize="20" FontWeight="Bold" Margin="0,0,0,20" HorizontalAlignment="Center"/>
+
+            <Image x:Name="imgFotoEmpleado" Width="80" Height="80" Margin="0,0,0,15"
+                   Source="/Foto empleado/Empeado masculino.png"/>
+
+            <Label Content="Usuario:"/>
+            <TextBox x:Name="txtUsername" Margin="0,0,0,10" Padding="5"/>
+
+            <Label Content="Nombre Real:"/>
+            <TextBox x:Name="txtNombreReal" Margin="0,0,0,10" Padding="5"/>
+
+            <Label Content="Contraseña:"/>
+            <PasswordBox x:Name="txtPassword" Margin="0,0,0,10" Padding="5"/>
+
+            <Label Content="Rol:"/>
+            <ComboBox x:Name="cmbRol" Margin="0,0,0,10">
+                <ComboBoxItem Content="Empleado" IsSelected="True"/>
+                <ComboBoxItem Content="Admin"/>
+            </ComboBox>
+
+            <Label Content="Sexo:"/>
+            <ComboBox x:Name="cmbSexo" Margin="0,0,0,15" SelectionChanged="cmbSexo_SelectionChanged">
+                <ComboBoxItem Content="Hombre" IsSelected="True"/>
+                <ComboBoxItem Content="Mujer"/>
+            </ComboBox>
+
+            <Button Content="Guardar Usuario" Click="btnGuardar_Click" Background="#28a745" Foreground="White" Height="35" FontWeight="Bold"/>
+            <Button Content="Cancelar" Click="btnCancelar_Click" Background="#dc3545" Foreground="White" Height="35" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>

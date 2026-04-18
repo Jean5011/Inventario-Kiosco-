@@ -1,0 +1,178 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ModificarProductoPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+        private Producto? _productoActual;
+
+        public ModificarProductoPage()
+        {
+            InitializeComponent();
+            CargarCategorias();
+        }
+
+        private void CargarCategorias()
+        {
+            cmbCategoria.ItemsSource = _repo.ObtenerCategorias();
+        }
+
+        private void btnBuscar_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtBuscarCodigo.Text))
+            {
+                MessageBox.Show("Ingrese un código de barras o nombre de producto", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string filtro = txtBuscarCodigo.Text.Trim();
+
+            // Primero intentar por código exacto
+            _productoActual = _repo.ObtenerPorCodigo(filtro);
+
+            // Si no encuentra, buscar por nombre/ID
+            if (_productoActual == null)
+            {
+                var resultados = _repo.BuscarProductos(filtro).ToList();
+
+                if (resultados.Count == 1)
+                {
+                    _productoActual = resultados[0];
+                }
+                else if (resultados.Count > 1)
+                {
+                    var seleccion = new SeleccionProductoWindow(resultados);
+                    seleccion.Owner = Window.GetWindow(this);
+                    if (seleccion.ShowDialog() == true && seleccion.ProductoSeleccionado != null)
+                    {
+                        _productoActual = seleccion.ProductoSeleccionado;
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (_productoActual != null)
+            {
+                txtNombre.Text = _productoActual.Nombre;
+                txtDescripcion.Text = _productoActual.Descripcion;
+                txtPrecio.Text = _productoActual.Precio.ToString();
+                txtStock.Text = _productoActual.Stock.ToString();
+                cmbCategoria.SelectedValue = _productoActual.CategoriaId;
+                btnActualizar.IsEnabled = true;
+                btnSumarStock.IsEnabled = true;
+                btnEliminar.IsEnabled = true;
+            }
+            else
+            {
+                MessageBox.Show("Producto no encontrado", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                LimpiarCampos();
+            }
+        }
+
+        private void btnActualizar_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null)
+                return;
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio) ||
+                !int.TryParse(txtStock.Text, out int stock))
+            {
+                MessageBox.Show("Precio y Stock deben ser valores numéricos", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            _productoActual.PrecioVenta = precio;
+            _productoActual.Stock = stock;
+            _productoActual.Descripcion = txtDescripcion.Text.Trim();
+            _productoActual.CategoriaId = cmbCategoria.SelectedValue is int catId ? catId : _productoActual.CategoriaId;
+
+            _repo.Actualizar(_productoActual);
+            MessageBox.Show("Producto actualizado correctamente", "Éxito",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Refrescar la lista de productos en MainWindow
+            if (Window.GetWindow(this) is MainWindow mainWindow)
+            {
+                mainWindow.RefrescarListaProductos();
+            }
+
+            LimpiarCampos();
+        }
+
+        private void btnSumarStock_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null)
+                return;
+
+            if (!int.TryParse(txtSumarStock.Text, out int cantidad) || cantidad <= 0)
+            {
+                MessageBox.Show("Ingrese una cantidad válida mayor a 0", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            _productoActual.Stock += cantidad;
+            _repo.Actualizar(_productoActual);
+
+            txtStock.Text = _productoActual.Stock.ToString();
+            txtSumarStock.Clear();
+
+            MessageBox.Show($"Se sumaron {cantidad} unidades. Stock actual: {_productoActual.Stock}", "Éxito",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+
+            if (Window.GetWindow(this) is MainWindow mainWindow)
+            {
+                mainWindow.RefrescarListaProductos();
+            }
+        }
+
+        private void btnEliminar_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null) return;
+
+            var resultado = MessageBox.Show(
+                $"¿Está seguro de eliminar el producto '{_productoActual.Nombre}'?",
+                "Confirmar eliminación", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (resultado == MessageBoxResult.Yes)
+            {
+                _repo.EliminarProducto(_productoActual.CodigoBarras);
+                MessageBox.Show("Producto eliminado correctamente.", "Éxito",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                if (Window.GetWindow(this) is MainWindow mainWindow)
+                {
+                    mainWindow.RefrescarListaProductos();
+                }
+
+                LimpiarCampos();
+            }
+        }
+
+        private void LimpiarCampos()
+        {
+            txtBuscarCodigo.Clear();
+            txtNombre.Clear();
+            txtDescripcion.Clear();
+            txtPrecio.Clear();
+            txtStock.Clear();
+            cmbCategoria.SelectedIndex = -1;
+            btnActualizar.IsEnabled = false;
+            btnSumarStock.IsEnabled = false;
+            btnEliminar.IsEnabled = false;
+            txtSumarStock.Clear();
+            _productoActual = null;
+        }
+    }
+}

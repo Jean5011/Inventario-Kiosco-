@@ -1,0 +1,283 @@
+Documentación del Proyecto "Invetario" - Reporte 6
+Cambios realizados después de la Documentación 5
+
+================================================================================
+
+CONTEXTO:
+   Después de la Documentación 5 se realizaron múltiples mejoras centradas
+   en: sincronización automática entre vistas, filtrado por categoría en la
+   lista de productos, sección de suma de stock, campo de descripción en
+   formularios, y ajuste responsivo de todas las vistas para que se adapten
+   correctamente al tamaño de la ventana sin necesidad de agrandarla
+   manualmente.
+
+================================================================================
+
+1. Refresco automático de ListaProductosPage al modificar un producto
+
+   Problema reportado:
+   - Al actualizar un producto desde ModificarProductoPage, la lista de
+	 productos en ListaProductosPage no reflejaba los cambios. El usuario
+	 debía navegar manualmente para ver los datos actualizados.
+
+   Causa raíz:
+   - El código usaba Application.Current.MainWindow para obtener la
+	 MainWindow, pero esta propiedad apuntaba al LoginView (la primera
+	 ventana mostrada en App.OnStartup), no a MainWindow. Por lo tanto,
+	 el cast "is MainWindow" siempre daba false.
+
+   Solución aplicada:
+   - Se cambió Application.Current.MainWindow por Window.GetWindow(this),
+	 que obtiene la ventana real donde está alojada la Page.
+   - Se hizo público el método CargarProductos() en ListaProductosPage.
+   - Se agregó el método RefrescarListaProductos() en MainWindow como
+	 puente para invocar la recarga.
+
+   Archivos modificados:
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+   - Invetario/Views/ListaProductosPage.xaml.cs
+   - Invetario/Views/MainWindow.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+2. Botón "🔄 Actualizar" en ListaProductosPage
+
+   Descripción:
+   - Se agregó un botón "Actualizar" en la barra de filtros de la lista
+	 de productos que permite recargar los datos manualmente desde la
+	 base de datos.
+
+   Archivos modificados:
+   - Invetario/Views/ListaProductosPage.xaml
+   - Invetario/Views/ListaProductosPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+3. Sección "➕ Sumar Stock" en ModificarProductoPage
+
+   Descripción:
+   - Se agregó una sección debajo del botón ACTUALIZAR que permite sumar
+	 unidades al stock de un producto buscado.
+   - Incluye un campo numérico y un botón "SUMAR" (verde).
+   - Valida que la cantidad sea mayor a 0.
+   - Tras sumar, actualiza el campo "Nuevo Stock" en pantalla, guarda en
+	 la base de datos y refresca la lista de productos automáticamente.
+
+   Archivos modificados:
+   - Invetario/Views/ModificarProductoPage.xaml
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+4. Filtrado por categoría en ListaProductosPage
+
+   Descripción:
+   - El ComboBox de categorías ahora filtra la lista de productos al
+	 seleccionar una categoría.
+   - Se agregó la opción "Todas" (Id=0) como primer elemento del combo,
+	 seleccionada por defecto.
+   - El filtro de texto y el de categoría funcionan combinados: se aplican
+	 ambos simultáneamente.
+   - Se mejoró la búsqueda por código de barras para usar Contains en
+	 vez de igualdad exacta (permite buscar mientras se escribe).
+
+   Problema adicional corregido:
+   - El filtrado no funcionaba inicialmente porque CargarProductos() se
+	 llamaba antes de CargarCombo(), y el evento SelectionChanged se
+	 disparaba prematuramente durante la inicialización.
+   - Se reordenó la inicialización (primero combo, luego productos).
+   - Se agregó un flag _inicializado para evitar ejecutar filtros antes
+	 de que todo esté listo.
+   - Al recargar productos, se re-aplican los filtros activos.
+
+   Archivos modificados:
+   - Invetario/Views/ListaProductosPage.xaml
+   - Invetario/Views/ListaProductosPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+5. Campo "Descripción" en formularios y lista
+
+   Descripción:
+   - Se agregó el campo Descripción (TextBox multilínea) en:
+	 * ModificarProductoPage: para ver y editar la descripción al
+	   modificar un producto.
+	 * NuevoProductoPage: para ingresar la descripción al crear un
+	   producto nuevo.
+   - Se agregó la columna "Descripción" en el DataGrid de
+	 ListaProductosPage.
+
+   Archivos modificados:
+   - Invetario/Views/ModificarProductoPage.xaml
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+   - Invetario/Views/NuevoProductoPage.xaml
+   - Invetario/Views/NuevoProductoPage.xaml.cs
+   - Invetario/Views/ListaProductosPage.xaml
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+6. Columna "Categoría" en ListaProductosPage y propiedad CategoriaNombre
+
+   Descripción:
+   - Se agregó la propiedad CategoriaNombre (string) al modelo Producto.
+   - Se modificó la consulta ObtenerTodos() para hacer un LEFT JOIN con
+	 la tabla Categorias y traer el nombre de la categoría.
+   - Se agregó la columna "Categoría" en el DataGrid de la lista.
+   - Se corrigió ObtenerTodos() que no traía CategoriaId (faltaba en el
+	 SELECT original).
+   - Se corrigió Actualizar() que no guardaba CategoriaId (faltaba en el
+	 UPDATE), por lo que cambiar la categoría no se persistía.
+
+   Archivos modificados:
+   - Invetario/Models/Producto.cs
+   - Invetario/Data/ProductoRepository.cs
+   - Invetario/Views/ListaProductosPage.xaml
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+7. Ajuste responsivo de todas las vistas
+
+   Problema reportado:
+   - Varias vistas no mostraban todo el contenido a menos que el usuario
+	 agrandara manualmente la ventana. Los DataGrids tenían alturas fijas
+	 y los contenedores StackPanel no se estiraban.
+
+   Solución aplicada:
+
+   a) MainWindow.xaml:
+	  - Se agregó WindowState="Maximized" para que se abra a pantalla
+		completa.
+
+   b) ListaProductosPage.xaml:
+	  - Se reemplazó StackPanel por DockPanel como contenedor raíz.
+	  - Se eliminó Height="450" fijo del DataGrid; ahora se estira para
+		llenar el espacio disponible.
+	  - Paginación anclada al fondo (DockPanel.Dock="Bottom").
+
+   c) VentasPage.xaml:
+	  - Se reemplazó StackPanel por DockPanel.
+	  - Se eliminó Height="300" fijo del DataGrid del carrito.
+	  - Total anclado al fondo.
+
+   d) AdminUsuariosPage.xaml:
+	  - Se reemplazó StackPanel por DockPanel.
+	  - Se eliminó Height="350" fijo del GroupBox.
+
+   e) ModificarProductoPage.xaml:
+	  - Se envolvió el contenido en un ScrollViewer para que el
+		formulario sea navegable si la ventana es pequeña.
+
+   f) NuevoProductoPage.xaml:
+	  - Mismo tratamiento con ScrollViewer.
+
+   g) NuevaCategoriaPage.xaml:
+	  - Se eliminaron Height="450" Width="800" fijos que limitaban el
+		tamaño de la página.
+
+   Archivos modificados:
+   - Invetario/Views/MainWindow.xaml
+   - Invetario/Views/ListaProductosPage.xaml
+   - Invetario/Views/VentasPage.xaml
+   - Invetario/Views/AdminUsuariosPage.xaml
+   - Invetario/Views/ModificarProductoPage.xaml
+   - Invetario/Views/NuevoProductoPage.xaml
+   - Invetario/Views/NuevaCategoriaPage.xaml
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+8. Refresco automático al crear un nuevo producto
+
+   Descripción:
+   - Al guardar un producto nuevo desde NuevoProductoPage, se llama a
+	 mainWindow.RefrescarListaProductos() para que la lista se actualice
+	 automáticamente sin necesidad de navegar o presionar "Actualizar".
+   - Usa el mismo mecanismo Window.GetWindow(this) que ModificarProductoPage.
+
+   Archivos modificados:
+   - Invetario/Views/NuevoProductoPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+9. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Models/Producto.cs (agregado CategoriaNombre)
+   - Invetario/Data/ProductoRepository.cs (ObtenerTodos con JOIN,
+	 Actualizar con CategoriaId)
+   - Invetario/Views/MainWindow.xaml (WindowState Maximized)
+   - Invetario/Views/MainWindow.xaml.cs (RefrescarListaProductos)
+   - Invetario/Views/ListaProductosPage.xaml (DockPanel, columnas
+	 Categoría y Descripción, botón Actualizar, combo con filtro)
+   - Invetario/Views/ListaProductosPage.xaml.cs (CargarProductos público,
+	 AplicarFiltros combinado, flag _inicializado, reorden constructor)
+   - Invetario/Views/ModificarProductoPage.xaml (campo Descripción,
+	 sección Sumar Stock, ScrollViewer)
+   - Invetario/Views/ModificarProductoPage.xaml.cs (Descripción, Sumar
+	 Stock, Window.GetWindow refresco)
+   - Invetario/Views/NuevoProductoPage.xaml (campo Descripción,
+	 ScrollViewer)
+   - Invetario/Views/NuevoProductoPage.xaml.cs (Descripción, refresco
+	 lista tras guardar)
+   - Invetario/Views/VentasPage.xaml (DockPanel responsivo)
+   - Invetario/Views/AdminUsuariosPage.xaml (DockPanel, sin altura fija)
+   - Invetario/Views/NuevaCategoriaPage.xaml (sin tamaño fijo)
+
+   NUEVOS:
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 6.txt
+
+---
+
+10. Estado actual del modelo Producto (actualizado)
+
+	Propiedades vigentes:
+	- Id (int)
+	- CodigoBarras (string)
+	- Nombre (string)
+	- Descripcion (string)
+	- PrecioCosto (decimal)
+	- PrecioVenta (decimal)
+	- CategoriaId (int)
+	- CategoriaNombre (string) — NUEVO, traído por JOIN desde Categorias
+	- Precio (decimal) — alias de PrecioVenta para compatibilidad XAML
+	- Cantidad (int) — valor inicial 1
+	- Subtotal (decimal) — calculado: PrecioVenta * Cantidad
+	- Stock (int)
+
+---
+
+11. Estado actual del flujo principal (actualizado)
+
+	✅ Login: Funciona
+	✅ Navegación entre páginas: Funciona
+	✅ MainWindow se abre maximizada
+	✅ Lista de productos: Muestra Categoría y Descripción
+	✅ Filtrado por texto y categoría combinado: Funciona
+	✅ Botón "🔄 Actualizar" en lista: Funciona
+	✅ Botón "🛒 Vender" desde lista: Funciona
+	✅ Ventas: Acumula cantidad del mismo producto
+	✅ Cálculo total: Correcto
+	✅ Nuevo Producto: Incluye Descripción, refresca lista al guardar
+	✅ Modificar Producto: Incluye Descripción, refresca lista al guardar
+	✅ Sumar Stock: Funciona, refresca lista al guardar
+	✅ Todas las vistas son responsivas (se adaptan al tamaño de ventana)
+	✅ Admin Usuarios: Funciona como Page integrada en MainFrame
+
+================================================================================
+Documentación generada el: 2025-07-14 (hora local del desarrollador)
+================================================================================

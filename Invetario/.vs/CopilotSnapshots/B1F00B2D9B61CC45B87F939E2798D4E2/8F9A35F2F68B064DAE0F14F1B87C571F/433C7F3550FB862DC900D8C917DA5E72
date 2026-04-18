@@ -1,0 +1,46 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ReportesPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+
+        public ReportesPage()
+        {
+            InitializeComponent();
+            CargarVentas();
+        }
+
+        private void cmbPeriodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            CargarVentas();
+        }
+
+        private void CargarVentas()
+        {
+            string periodo = (cmbPeriodo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Hoy";
+
+            var ventas = _repo.ObtenerReporteVentas(periodo).ToList();
+            dgVentas.ItemsSource = ventas;
+
+            decimal total = ventas.Sum(v => (decimal)v.Total);
+            lblTotalPeriodo.Text = $"Total: {total:C2}";
+        }
+
+        private void btnVerTicket_Click(object sender, RoutedEventArgs e)
+        {
+            var venta = (sender as Button)?.DataContext as dynamic;
+            if (venta == null) return;
+
+            var ticketWin = new TicketWindow((int)venta.Id);
+            ticketWin.Owner = Window.GetWindow(this);
+            ticketWin.ShowDialog();
+        }
+    }
+}

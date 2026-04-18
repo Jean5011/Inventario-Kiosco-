@@ -1,0 +1,98 @@
+﻿using Dapper;
+using Invetario.Models;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Invetario.Data
+{
+    public class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        public Producto? ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock 
+                               FROM Productos 
+                               WHERE CodigoBarras = @codigo";
+
+                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+            }
+        }
+
+        // 2. Validar Usuario (Para el Login)
+        public Usuario? ValidarUsuario(string user, string pass)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
+                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+            }
+        }
+
+        // 3. Obtener todos los productos (Para la Lista)
+        public IEnumerable<Producto> ObtenerTodos()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock FROM Productos ORDER BY Nombre ASC";
+                return db.Query<Producto>(sql);
+            }
+        }
+
+        // 4. Insertar nuevo producto (Con todas las columnas)
+        public void Insertar(Producto
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"INSERT INTO Productos (CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock) 
+                             PROBE12                db.Execute(sql, p);
+            }
+        }
+
+        // 5. Actualizar producto existente
+        public void Actualizar(Producto p)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"UPDATE Productos 
+                             SET Nombre = @Nombre, Descripcion = @Descripcion, 
+                                 PrecioCosto = @PrecioCosto, PrecioVenta = @PrecioVenta, Stock = @Stock 
+                             WHERE CodigoBarras = @CodigoBarras";
+                db.Execute(sql, p);
+            }
+        }
+
+
+        // Busca por Código Exacto, ID Exacto, o Coincidencia de Nombre
+        public IEnumerable<Producto> BuscarProductos(string filtro)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Intentamos convertir el filtro a número para buscar por ID
+                int.TryParse(filtro, out int idBuscado);
+
+                string sql = @"SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock 
+                       FROM Productos 
+                       WHERE CodigoBarras = @filtro 
+                          OR Id = @idBuscado 
+                          OR Nombre LIKE '%' + @filtro + '%'
+                       ORDER BY Nombre ASC";
+
+                return db.Query<Producto>(sql, new { filtro, idBuscado });
+            }
+        }
+
+        public IEnumerable<Categoria> ObtenerCategorias()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Trae el Id, Nombre y EsPesable de la tabla categoria
+                return db.Query<Categoria>("SELECT * FROM Categorias");
+            }
+        }
+
+
+    }
+}

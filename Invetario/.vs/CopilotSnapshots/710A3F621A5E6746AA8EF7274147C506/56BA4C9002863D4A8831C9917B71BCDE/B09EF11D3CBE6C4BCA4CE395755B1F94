@@ -1,0 +1,55 @@
+﻿<Page x:Class="Invetario.Views.ModificarProductoPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Modificar Producto">
+    <Grid Margin="20">
+        <StackPanel Width="400" VerticalAlignment="Top">
+            <TextBlock Text="📝 Modificar Stock" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+            <TextBlock Text="Código de Barras:" Margin="0,10,0,5"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBox x:Name="txtBuscarCodigo" Height="35" FontSize="14" 
+                         VerticalContentAlignment="Center" Width="280"/>
+                <Button Content="Buscar" Width="100" Margin="10,0,0,0" Height="35"
+                        Background="#2980B9" Foreground="White" Click="btnBuscar_Click"/>
+            </StackPanel>
+
+            <TextBlock Text="Categoría:" Margin="0,15,0,5"/>
+            <ComboBox x:Name="cmbCategoria" Height="35" FontSize="14"
+                      DisplayMemberPath="Nombre" SelectedValuePath="Id"
+                      VerticalContentAlignment="Center"/>
+
+            <TextBlock Text="Nombre:" Margin="0,15,0,5"/>
+            <TextBox x:Name="txtNombre" Height="35" FontSize="14" 
+                     VerticalContentAlignment="Center" IsReadOnly="True" Background="#EEEEEE"/>
+
+            <TextBlock Text="Descripción:" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtDescripcion" Height="60" FontSize="14" 
+                     VerticalContentAlignment="Top" TextWrapping="Wrap" AcceptsReturn="True"/>
+
+            <TextBlock Text="Precio:" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtPrecio" Height="35" FontSize="14" VerticalContentAlignment="Center"/>
+
+            <TextBlock Text="Nuevo Stock:" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtStock" Height="35" FontSize="14" VerticalContentAlignment="Center"/>
+
+            <Button x:Name="btnActualizar" Content="ACTUALIZAR" Height="40" Margin="0,25,0,0"
+                    Background="#E67E22" Foreground="White" FontWeight="Bold"
+                    Click="btnActualizar_Click" IsEnabled="False"/>
+
+            <!-- Sección para sumar stock -->
+            <Border BorderBrush="#BDC3C7" BorderThickness="0,1,0,0" Margin="0,30,0,0" Padding="0,15,0,0">
+                <StackPanel>
+                    <TextBlock Text="➕ Sumar Stock" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox x:Name="txtSumarStock" Height="35" FontSize="14" Width="200"
+                                 VerticalContentAlignment="Center"/>
+                        <Button x:Name="btnSumarStock" Content="SUMAR" Width="120" Height="35" Margin="10,0,0,0"
+                                Background="#27AE60" Foreground="White" FontWeight="Bold"
+                                Click="btnSumarStock_Click" IsEnabled="False"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</Page>

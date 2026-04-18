@@ -1,0 +1,126 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using Invetario.Data;
+using Invetario.Models;
+
+namespace Invetario.Views
+{
+    /// <summary>
+    /// Lógica de interacción para ReportesPage.xaml
+    /// </summary>
+    public partial class ReportesPage 
+    {
+        private readonly ProductoRepository _repository;
+
+        public ReportesPage()
+        {
+            InitializeComponent();
+            _repository = new ProductoRepository();
+            CargarCombosDinamicos();
+            CargarReporte();
+        }
+
+        private void CargarCombosDinamicos()
+        {
+            // Cargar días 1-31
+            for (int i = 1; i <= 31; i++)
+                cmbDia.Items.Add(new ComboBoxItem { Content = i.ToString() });
+
+            // Cargar años (desde 2020 hasta el actual + 1)
+            int anioActual = DateTime.Now.Year;
+            for (int a = anioActual; a >= 2020; a--)
+                cmbAnio.Items.Add(new ComboBoxItem { Content = a.ToString() });
+        }
+
+        private void cmbPeriodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_repository == null) return;
+            CargarReporte();
+        }
+
+        private void CargarReporte()
+        {
+            if (cmbPeriodo == null) return;
+
+            var periodoSeleccionado = ((ComboBoxItem)cmbPeriodo.SelectedItem)?.Content?.ToString();
+            string periodo = periodoSeleccionado switch
+            {
+                "Hoy" => "Diaria",
+                "Esta Semana" => "Semanal",
+                "Este Mes" => "Mensual",
+                "Este Año" => "Anual",
+                _ => "Diaria"
+            };
+
+            var ventas = _repository.ObtenerVentasPorPeriodo(periodo);
+            MostrarVentas(ventas);
+        }
+
+        private void btnFiltroEspecifico_Click(object sender, RoutedEventArgs e)
+        {
+            string diaTexto = ((ComboBoxItem)cmbDia.SelectedItem)?.Content?.ToString() ?? "Todos";
+            string mesTexto = ((ComboBoxItem)cmbMes.SelectedItem)?.Content?.ToString() ?? "Todos";
+            string anioTexto = ((ComboBoxItem)cmbAnio.SelectedItem)?.Content?.ToString() ?? "Todos";
+
+            int? dia = diaTexto != "Todos" ? int.Parse(diaTexto) : null;
+            int? mes = mesTexto != "Todos" ? ObtenerNumeroMes(mesTexto) : null;
+            int? anio = anioTexto != "Todos" ? int.Parse(anioTexto) : null;
+
+            var ventas = _repository.ObtenerVentasFiltroEspecifico(dia, mes, anio);
+            MostrarVentas(ventas);
+        }
+
+        private void btnLimpiarFiltro_Click(object sender, RoutedEventArgs e)
+        {
+            cmbDia.SelectedIndex = 0;
+            cmbMes.SelectedIndex = 0;
+            cmbAnio.SelectedIndex = 0;
+            cmbPeriodo.SelectedIndex = 0;
+            CargarReporte();
+        }
+
+        private void MostrarVentas(List<VentaReporte> ventas)
+        {
+            dgVentas.ItemsSource = ventas;
+            decimal total = ventas.Sum(v => v.Total);
+            lblTotalPeriodo.Text = $"Total: {total:C}";
+        }
+
+        private int ObtenerNumeroMes(string nombre)
+        {
+            return nombre switch
+            {
+                "Enero" => 1, "Febrero" => 2, "Marzo" => 3,
+                "Abril" => 4, "Mayo" => 5, "Junio" => 6,
+                "Julio" => 7, "Agosto" => 8, "Septiembre" => 9,
+                "Octubre" => 10, "Noviembre" => 11, "Diciembre" => 12,
+                _ => 1
+            };
+        }
+
+        private void btnFiltroHoy_Click(object sender, RoutedEventArgs e)
+        {
+            var ventas = _repository.ObtenerVentasPorPeriodo("Diaria");
+            MostrarVentas(ventas);
+        }
+
+        private void btnVerTicket_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is VentaReporte venta)
+            {
+                var ticketWin = new TicketWindow(venta.Id);
+                ticketWin.ShowDialog();
+            }
+        }
+    }
+}

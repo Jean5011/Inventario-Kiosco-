@@ -1,0 +1,26 @@
+﻿<Page x:Class="Invetario.Views.VentasPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Ventas">
+    <DockPanel Margin="20">
+        <TextBlock DockPanel.Dock="Top" Text="🛒 Nueva Venta" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <TextBox DockPanel.Dock="Top" x:Name="txtScanner" Height="40" FontSize="18"
+                 VerticalContentAlignment="Center" 
+                 Tag="Escanear código de barras..." KeyDown="txtScanner_KeyDown"/>
+
+        <TextBlock DockPanel.Dock="Bottom" x:Name="lblTotal" Text="Total: $0.00" FontSize="20" 
+                   FontWeight="Bold" HorizontalAlignment="Right" Margin="0,15,0,0"/>
+
+        <DataGrid x:Name="dgCarrito" AutoGenerateColumns="False" Margin="0,20,0,0"
+                  IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Código" Binding="{Binding CodigoBarras}" Width="150"/>
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                <DataGridTextColumn Header="Precio" Binding="{Binding Precio, StringFormat=C2}" Width="100"/>
+                <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" Width="80"/>
+                <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal, StringFormat=C2}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Page>

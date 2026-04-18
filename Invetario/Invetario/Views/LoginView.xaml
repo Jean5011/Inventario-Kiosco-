@@ -1,7 +1,7 @@
 <Window x:Class="Invetario.Views.LoginView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Ingreso al Sistema" Height="350" Width="400" 
+        Title="Ingreso al Sistema" Height="350" Width="400"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Background="#F5F6FA">
     <Grid Margin="30">
         <StackPanel VerticalAlignment="Center">

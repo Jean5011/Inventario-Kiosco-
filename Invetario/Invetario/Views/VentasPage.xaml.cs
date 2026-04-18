@@ -1,9 +1,16 @@
 using Invetario.Data;
 using Invetario.Models;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Invetario.Views
 {
@@ -18,68 +25,189 @@ namespace Invetario.Views
             dgCarrito.ItemsSource = _carrito;
         }
 
-        
         private void ActualizarTotal()
         {
-            decimal total = 0;
-            foreach (var item in _carrito)
-            {
-                total += item.PrecioVenta;
-            }
+            decimal total = _carrito.Sum(item => item.Subtotal);
             lblTotal.Text = $"Total: {total:C2}";
         }
-        private void txtScanner_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+
+        // ============================================================
+        // EVENTO: El usuario escanea o escribe un código y presiona Enter
+        // ============================================================
+        private void txtCodigo_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Enter)
+            if (e.Key != Key.Enter) return;
+
+            string codigo = txtCodigo.Text.Trim();
+            if (string.IsNullOrEmpty(codigo)) return;
+
+            var productoEncontrado = _repo.ObtenerPorCodigo(codigo);
+
+            if (productoEncontrado == null)
             {
-                string busqueda = txtScanner.Text.Trim();
-                if (string.IsNullOrEmpty(busqueda)) return;
+                MessageBox.Show("No se encontró ningún producto.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                txtCodigo.SelectAll();
+                txtCodigo.Focus();
+                return;
+            }
 
-                // Usamos el nuevo método del repositorio
-                var resultados = _repo.BuscarProductos(busqueda).ToList();
+            // --- LÓGICA DE BIFURCACIÓN ---
+            if (productoEncontrado.Categoria != null && productoEncontrado.Categoria.EsPesable)
+            {
+                // Producto pesable: abrir diálogo de kg/gr
+                var dialog = new PesableDialog(productoEncontrado.Nombre, productoEncontrado.PrecioVenta);
+                dialog.Owner = Window.GetWindow(this);
 
-                if (resultados.Count == 1)
+                if (dialog.ShowDialog() != true || !dialog.Confirmado)
                 {
-                    // Encontró exactamente uno (Seguramente un Código de Barras o ID exacto)
-                    AgregarAlCarrito(resultados.First());
-                    txtScanner.Clear();
+                    txtCodigo.SelectAll();
+                    txtCodigo.Focus();
+                    return;
                 }
-                else if (resultados.Count > 1)
+
+                productoEncontrado.PrecioManual = dialog.MontoResultado;
+                productoEncontrado.EsPesable = true;
+                AgregarAlCarrito(productoEncontrado);
+                txtCodigo.Clear();
+                txtCodigo.Focus();
+            }
+            else
+            {
+                // Producto normal: agregar directo al carrito
+                AgregarAlCarrito(productoEncontrado);
+                txtCodigo.Clear();
+                txtCodigo.Focus();
+            }
+        }
+
+        // ============================================================
+        // Agregar producto al carrito (o sumar cantidad si ya existe)
+        // ============================================================
+        private void AgregarAlCarrito(Producto p)
+        {
+            // Para productos pesables cada entrada es independiente (precio distinto)
+            if (p.EsPesable || (p.Categoria != null && p.Categoria.EsPesable))
+            {
+                _carrito.Add(new Producto
                 {
-                    // Encontró varios (Ej: escribió "Galletitas")
-                    System.Windows.MessageBox.Show($"Se encontraron {resultados.Count} productos. Por favor, sé más específico o usá el ID exacto.",
-                                                   "Múltiples resultados", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                    // Acá a futuro podríamos abrir una ListBox o Ventana Modal para elegir
+                    Id = p.Id,
+                    CodigoBarras = p.CodigoBarras,
+                    Nombre = p.Nombre,
+                    Descripcion = p.Descripcion,
+                    PrecioCosto = p.PrecioCosto,
+                    PrecioVenta = p.PrecioVenta,
+                    Categoria = p.Categoria,
+                    CategoriaId = p.CategoriaId,
+                    Stock = p.Stock,
+                    EsPesable = true,
+                    PrecioManual = p.PrecioManual,
+                    Cantidad = 1
+                });
+            }
+            else
+            {
+                var existente = _carrito.FirstOrDefault(x => x.CodigoBarras == p.CodigoBarras || x.Id == p.Id);
+
+                if (existente != null)
+                {
+                    existente.Cantidad++;
+                    dgCarrito.Items.Refresh();
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show("No se encontró ningún producto.", "Error",
-                                                   System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    txtScanner.SelectAll();
+                    _carrito.Add(new Producto
+                    {
+                        Id = p.Id,
+                        CodigoBarras = p.CodigoBarras,
+                        Nombre = p.Nombre,
+                        Descripcion = p.Descripcion,
+                        PrecioCosto = p.PrecioCosto,
+                        PrecioVenta = p.PrecioVenta,
+                        Categoria = p.Categoria!,
+                        CategoriaId = p.CategoriaId,
+                        Stock = p.Stock,
+                        Cantidad = 1
+                    });
                 }
-
-                txtScanner.Focus();
             }
-        }
 
-        // Método auxiliar (Asumo que ya tenías algo parecido)
-        private void AgregarAlCarrito(Producto p)
-        {
-            // Lógica para agregar a la ObservableCollection _carrito
-            _carrito.Add(p);
             ActualizarTotal();
         }
 
-        // Este método es público para que MainWindow lo pueda llamar
+        private void btnEliminarFila_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Producto producto)
+            {
+                _carrito.Remove(producto);
+                ActualizarTotal();
+            }
+        }
+
+        private void btnLimpiarCarrito_Click(object sender, RoutedEventArgs e)
+        {
+            if (_carrito.Count == 0) return;
+
+            var resultado = MessageBox.Show("¿Está seguro de limpiar todo el carrito?",
+                "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (resultado == MessageBoxResult.Yes)
+            {
+                _carrito.Clear();
+                ActualizarTotal();
+            }
+        }
+
         public void AgregarProductoDesdeAfuera(Producto p)
         {
-            // Verificamos que el producto no sea nulo
-            if (p != null)
+            if (p == null) return;
+            AgregarAlCarrito(p);
+        }
+
+        private void btnCerrarVenta_Click(object sender, RoutedEventArgs e)
+        {
+            if (_carrito.Count == 0)
             {
-                // Reutilizamos la lógica que ya tenés para agregar al carrito
-                // Asegurate de que tu ObservableCollection se llame _carrito (o cambiale el nombre acá)
-                _carrito.Add(p);
+                MessageBox.Show("El carrito está vacío.", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                decimal total = _carrito.Sum(x => x.Subtotal);
+
+                var venta = new Venta
+                {
+                    FechaVenta = DateTime.Now,
+                    TotalVenta = total,
+                    MetodoPago = "Efectivo"
+                };
+
+                var detalles = _carrito.Select(x => new DetalleVenta
+                {
+                    IdProducto = x.Id,
+                    Cantidad = x.Cantidad,
+                    PrecioUnitario = x.EsPesable ? x.PrecioManual : x.PrecioVenta,
+                    Preciototal = x.Subtotal
+                }).ToList();
+
+                int idVenta = _repo.RegistrarVenta(venta, detalles);
+
+                var itemsTicket = _carrito.ToList();
+
+                _carrito.Clear();
                 ActualizarTotal();
+
+                // Mostrar ventana de ticket/recibo directamente
+                var ticketWin = new TicketWindow(idVenta, venta.FechaVenta, total, itemsTicket);
+                ticketWin.Owner = Window.GetWindow(this);
+                ticketWin.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al registrar la venta:\n{ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

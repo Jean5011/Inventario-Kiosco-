@@ -1,0 +1,99 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ReportesPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+
+        public ReportesPage()
+        {
+            InitializeComponent();
+            dpFecha.SelectedDate = DateTime.Today;
+            txtAnioMes.Text = DateTime.Now.Year.ToString();
+            txtAnio.Text = DateTime.Now.Year.ToString();
+            cmbMes.SelectedIndex = DateTime.Now.Month - 1;
+            CargarVentas();
+        }
+
+        private void cmbPeriodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+
+            string periodo = (cmbPeriodo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+
+            // Mostrar/ocultar paneles según selección
+            if (panelFiltroFecha != null) panelFiltroFecha.Visibility = periodo == "Día específico" ? Visibility.Visible : Visibility.Collapsed;
+            if (panelFiltroMes != null) panelFiltroMes.Visibility = periodo == "Mes específico" ? Visibility.Visible : Visibility.Collapsed;
+            if (panelFiltroAnio != null) panelFiltroAnio.Visibility = periodo == "Año específico" ? Visibility.Visible : Visibility.Collapsed;
+
+            CargarVentas();
+        }
+
+        private void dpFecha_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            CargarVentas();
+        }
+
+        private void cmbMesAnio_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            CargarVentas();
+        }
+
+        private void txtAnio_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            CargarVentas();
+        }
+
+        private void CargarVentas()
+        {
+            string periodo = (cmbPeriodo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Hoy";
+
+            DateTime? fechaEspecifica = null;
+            int? mesEspecifico = null;
+            int? anioEspecifico = null;
+
+            if (periodo == "Día específico")
+            {
+                fechaEspecifica = dpFecha.SelectedDate;
+                if (fechaEspecifica == null) return;
+            }
+            else if (periodo == "Mes específico")
+            {
+                var itemMes = cmbMes.SelectedItem as ComboBoxItem;
+                if (itemMes != null) mesEspecifico = int.Parse(itemMes.Tag.ToString()!);
+                if (int.TryParse(txtAnioMes.Text, out int a)) anioEspecifico = a;
+                else return;
+            }
+            else if (periodo == "Año específico")
+            {
+                if (int.TryParse(txtAnio.Text, out int a)) anioEspecifico = a;
+                else return;
+            }
+
+            var ventas = _repo.ObtenerReporteVentasFiltrado(periodo, fechaEspecifica, mesEspecifico, anioEspecifico).ToList();
+            dgVentas.ItemsSource = ventas;
+
+            decimal total = ventas.Sum(v => (decimal)v.Total);
+            lblTotalPeriodo.Text = $"Total: {total:C2}";
+        }
+
+        private void btnVerTicket_Click(object sender, RoutedEventArgs e)
+        {
+            var venta = (sender as Button)?.DataContext as dynamic;
+            if (venta == null) return;
+
+            var ticketWin = new TicketWindow((int)venta.Id);
+            ticketWin.Owner = Window.GetWindow(this);
+            ticketWin.ShowDialog();
+        }
+    }
+}

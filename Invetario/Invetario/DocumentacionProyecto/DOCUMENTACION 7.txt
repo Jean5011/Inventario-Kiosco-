@@ -1,0 +1,265 @@
+Documentación del Proyecto "Invetario" - Reporte 7
+Cambios realizados después de la Documentación 6
+
+================================================================================
+
+CONTEXTO:
+   Después de la Documentación 6 se realizaron múltiples mejoras centradas
+   en: corrección de errores de compilación en VentasPage, representación
+   visual de usuarios según sexo (fotos de perfil), administración avanzada
+   de usuarios (eliminar, filtrar por rol), eliminación de productos,
+   búsqueda de productos por nombre, foto de usuario en MainWindow, y
+   funcionalidad completa de cierre de venta con ventana de ticket/recibo
+   e impresión.
+
+================================================================================
+
+1. Corrección de error CS0103: txtPrecioManual en VentasPage
+
+   Problema reportado:
+   - El código en VentasPage.xaml.cs hacía referencia a un control
+	 "txtPrecioManual" que no existía en el XAML, causando error CS0103.
+
+   Causa raíz:
+   - Existía código obsoleto relacionado con un flujo de precio manual
+	 que fue reemplazado por el PesableDialog pero no se limpió del
+	 code-behind.
+
+   Solución aplicada:
+   - Se eliminó todo el código obsoleto referente a txtPrecioManual y
+	 _productoPendiente en VentasPage.xaml.cs.
+
+   Archivos modificados:
+   - Invetario/Views/VentasPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+2. Fotos de perfil según sexo del usuario
+
+   Descripción:
+   - Se implementó la visualización de fotos de perfil en la interfaz
+	 según el sexo del usuario (Hombre/Mujer).
+   - Se creó un converter SexoToImageConverter (IValueConverter) que
+	 mapea el valor de Sexo a la imagen correspondiente usando pack URI.
+   - Se agregaron las imágenes como Resource en el .csproj:
+	 * Foto empleado/Empeado masculino.png
+	 * Foto empleado/empleado femenino.png
+   - Se agregó columna "Foto" en el DataGrid de AdminUsuariosPage.
+   - Se agregó vista previa de imagen en NuevoUsuarioWindow con cambio
+	 dinámico al seleccionar el sexo.
+
+   Archivos modificados:
+   - Invetario/Invetario.csproj (recursos de imagen)
+   - Invetario/Views/AdminUsuariosPage.xaml (columna Foto con converter)
+   - Invetario/Views/NuevoUsuarioWindow.xaml (Image para avatar)
+   - Invetario/Views/NuevoUsuarioWindow.xaml.cs (cmbSexo_SelectionChanged)
+
+   Archivos nuevos:
+   - Invetario/Converters/SexoToImageConverter.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+3. Eliminación de usuarios
+
+   Descripción:
+   - Se agregó la funcionalidad de eliminar usuarios desde
+	 AdminUsuariosPage.
+   - Se agregó el método EliminarUsuario(int id) en ProductoRepository
+	 que ejecuta DELETE FROM Usuarios WHERE Id = @id.
+   - Se agregó botón "Eliminar" en AdminUsuariosPage.xaml.
+   - Se agregó handler btnEliminarUsuario_Click con confirmación
+	 mediante MessageBox antes de eliminar.
+
+   Archivos modificados:
+   - Invetario/Data/ProductoRepository.cs
+   - Invetario/Views/AdminUsuariosPage.xaml
+   - Invetario/Views/AdminUsuariosPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+4. Filtrado de usuarios por rol
+
+   Descripción:
+   - Se agregó un ComboBox (cmbFiltroRol) en AdminUsuariosPage para
+	 filtrar usuarios por rol (Todos, Admin, Empleado, etc.).
+   - Se actualizó el método BuscarUsuarios en ProductoRepository para
+	 aceptar un parámetro "rol" adicional y aplicar condición
+	 AND Rol = @rol dinámicamente.
+   - Se resetea el filtro de rol al presionar "Actualizar Tabla".
+
+   Archivos modificados:
+   - Invetario/Data/ProductoRepository.cs
+   - Invetario/Views/AdminUsuariosPage.xaml
+   - Invetario/Views/AdminUsuariosPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+5. Eliminación de productos desde ModificarProductoPage
+
+   Descripción:
+   - Se agregó el método EliminarProducto(string codigoBarras) en
+	 ProductoRepository que ejecuta DELETE FROM Productos.
+   - Se agregó un botón rojo "ELIMINAR PRODUCTO" en
+	 ModificarProductoPage.xaml.
+   - Se agregó handler btnEliminar_Click con confirmación y refresco
+	 automático de la lista de productos tras eliminar.
+
+   Archivos modificados:
+   - Invetario/Data/ProductoRepository.cs
+   - Invetario/Views/ModificarProductoPage.xaml
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+6. Foto de usuario logueado en MainWindow
+
+   Descripción:
+   - Se reemplazó el Ellipse estático del sidebar por uno con
+	 ImageBrush para mostrar la foto del usuario logueado.
+   - En MainWindow.xaml.cs se carga la imagen según UsuarioActual.Sexo
+	 usando BitmapImage con pack URI.
+
+   Archivos modificados:
+   - Invetario/Views/MainWindow.xaml
+   - Invetario/Views/MainWindow.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+7. Búsqueda de productos por nombre con selección múltiple
+
+   Descripción:
+   - Se adaptó btnBuscar_Click en ModificarProductoPage para buscar
+	 primero por código exacto y, si no encuentra, usar
+	 BuscarProductos(filtro) que filtra por nombre/ID.
+   - Se creó SeleccionProductoWindow: ventana auxiliar con DataGrid
+	 para elegir entre múltiples resultados de búsqueda.
+   - Columnas: Código, Nombre, Precio, Stock.
+   - Selección por doble clic o botón "Seleccionar".
+
+   Archivos modificados:
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+
+   Archivos nuevos:
+   - Invetario/Views/SeleccionProductoWindow.xaml
+   - Invetario/Views/SeleccionProductoWindow.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+8. Cierre de venta con ventana de ticket/recibo
+
+   Descripción:
+   - Se agregó botón "💰 Cerrar Venta" (verde) en VentasPage.xaml
+	 junto al botón de limpiar carrito.
+   - Se agregó el método RegistrarVenta(Venta, List<DetalleVenta>) en
+	 ProductoRepository que en una transacción SQL:
+	 * Inserta la cabecera en tabla Ventas y obtiene el ID generado.
+	 * Inserta cada línea en tabla DetalleVentas (sin Preciototal,
+	   que es columna calculada en la BD).
+	 * Descuenta el stock de cada producto vendido.
+   - Al cerrar la venta se abre una ventana TicketWindow que muestra
+	 el recibo completo con formato de ticket:
+	 * Nombre del negocio (KIOSCO BERTA)
+	 * Número de ticket e ID de venta
+	 * Fecha y hora
+	 * Detalle de productos con cantidades y subtotales
+	 * Total de la venta
+	 * Mensaje "¡Gracias por su compra!"
+   - La ventana TicketWindow incluye un botón "🖨 Imprimir" que abre
+	 el diálogo de impresión de Windows (ticketera, PDF, etc.) y un
+	 botón "Cerrar".
+   - El documento se genera como FlowDocument con fuente Consolas y
+	 ancho de 280px (ideal para ticketeras de 80mm).
+
+   Correcciones aplicadas durante el desarrollo:
+   - Se corrigió que el ticket se generaba después de limpiar el
+	 carrito (los items se capturan antes con ToList()).
+   - Se eliminó Preciototal del INSERT INTO DetalleVentas porque es
+	 una columna calculada en la base de datos (error: "No se puede
+	 modificar la columna 'Preciototal' porque es una columna
+	 calculada").
+   - Se agregó manejo de excepciones en la impresión para que un
+	 error de impresora no afecte la venta ya registrada.
+
+   Archivos modificados:
+   - Invetario/Views/VentasPage.xaml (botón Cerrar Venta)
+   - Invetario/Views/VentasPage.xaml.cs (btnCerrarVenta_Click, lógica
+	 de registro y apertura de TicketWindow)
+   - Invetario/Data/ProductoRepository.cs (RegistrarVenta con Dapper
+	 y transacción)
+
+   Archivos nuevos:
+   - Invetario/Views/TicketWindow.xaml
+   - Invetario/Views/TicketWindow.xaml.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+9. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Invetario.csproj (recursos de imágenes de empleados)
+   - Invetario/Models/Producto.cs (ya existente, sin cambios en esta fase)
+   - Invetario/Data/ProductoRepository.cs (EliminarUsuario,
+	 EliminarProducto, BuscarUsuarios con filtro rol,
+	 RegistrarVenta con transacción)
+   - Invetario/Views/VentasPage.xaml (botón Cerrar Venta)
+   - Invetario/Views/VentasPage.xaml.cs (corrección txtPrecioManual,
+	 cierre de venta, apertura de TicketWindow)
+   - Invetario/Views/AdminUsuariosPage.xaml (columna Foto, filtro rol,
+	 botón eliminar)
+   - Invetario/Views/AdminUsuariosPage.xaml.cs (eliminar usuario,
+	 filtro por rol)
+   - Invetario/Views/NuevoUsuarioWindow.xaml (imagen de avatar)
+   - Invetario/Views/NuevoUsuarioWindow.xaml.cs (cambio de imagen
+	 por sexo)
+   - Invetario/Views/MainWindow.xaml (foto de usuario en sidebar)
+   - Invetario/Views/MainWindow.xaml.cs (carga de imagen según sexo)
+   - Invetario/Views/ModificarProductoPage.xaml (botón eliminar
+	 producto)
+   - Invetario/Views/ModificarProductoPage.xaml.cs (eliminar producto,
+	 búsqueda por nombre)
+
+   NUEVOS:
+   - Invetario/Converters/SexoToImageConverter.cs
+   - Invetario/Views/SeleccionProductoWindow.xaml
+   - Invetario/Views/SeleccionProductoWindow.xaml.cs
+   - Invetario/Views/TicketWindow.xaml
+   - Invetario/Views/TicketWindow.xaml.cs
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 7.txt
+
+---
+
+10. Estado actual del flujo principal (actualizado)
+
+	✅ Login: Funciona
+	✅ Navegación entre páginas: Funciona
+	✅ MainWindow se abre maximizada con foto de usuario
+	✅ Lista de productos: Filtrado por texto y categoría
+	✅ Búsqueda de productos por nombre con selección múltiple
+	✅ Nuevo Producto: Incluye Descripción, refresca lista
+	✅ Modificar Producto: Incluye Descripción, sumar stock, eliminar
+	✅ Ventas: Escaneo, productos pesables, acumular cantidad
+	✅ Cerrar Venta: Registra en BD, descuenta stock, muestra ticket
+	✅ Ticket/Recibo: Ventana visual con botón de impresión
+	✅ Admin Usuarios: Filtro por sexo/rol, eliminar, fotos por sexo
+	✅ Nuevo Usuario: Vista previa de foto según sexo
+	✅ Todas las vistas son responsivas
+
+================================================================================
+Documentación generada el: 2025-07-16 (hora local del desarrollador)
+================================================================================

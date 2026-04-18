@@ -1,0 +1,83 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using Invetario.Data;
+using Invetario.Models;
+
+namespace Invetario.Views
+{
+    /// <summary>
+    /// Lógica de interacción para ReportesPage.xaml
+    /// </summary>
+    public partial class ReportesPage 
+    {
+        private readonly ProductoRepository _repository;
+
+        public ReportesPage()
+        {
+            InitializeComponent();
+            _repository = new ProductoRepository();
+            CargarReporte();
+        }
+
+        private void cmbPeriodo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            CargarReporte();
+        }
+
+        private void CargarReporte()
+        {
+            if (cmbPeriodo == null) return;
+
+            var periodoSeleccionado = ((ComboBoxItem)cmbPeriodo.SelectedItem)?.Content?.ToString();
+            string periodo = periodoSeleccionado switch
+            {
+                "Hoy" => "Diaria",
+                "Esta Semana" => "Semanal",
+                "Este Mes" => "Mensual",
+                "Este Año" => "Anual",
+                _ => "Diaria"
+            };
+
+            var ventas = _repository.ObtenerVentasPorPeriodo(periodo);
+            dgVentas.ItemsSource = ventas;
+
+            decimal total = ventas.Sum(v => v.Total);
+            lblTotalPeriodo.Text = $"Total: {total:C}";
+        }
+
+        private void btnVerDetalleTicket_Click(object sender, RoutedEventArgs e)
+        {
+            // Capturamos la fila seleccionada del DataGrid
+            var ventaSeleccionada = (VentaReporte)((Button)sender).DataContext;
+
+            if (ventaSeleccionada != null)
+            {
+                // Reutilizamos tu ventana de Ticket pasándole el Id de la venta
+                TicketWindow ventanaTicket = new TicketWindow(ventaSeleccionada.Id);
+                ventanaTicket.ShowDialog();
+            }
+        }
+        private void btnVerTicket_Click(object sender, RoutedEventArgs e)
+        {
+            // Obtenemos la fila seleccionada (usamos dynamic porque el query devuelve columnas de dos tablas)
+            var venta = ((sender as Button)?.DataContext) as dynamic;
+
+            if (venta != null)
+            {
+                // Abrimos el ticket que ya tenés programado
+                var ticketWin = new TicketWindow(venta.Id);
+                ticketWin.ShowDialog();
+            }
+        }
+    }
+}

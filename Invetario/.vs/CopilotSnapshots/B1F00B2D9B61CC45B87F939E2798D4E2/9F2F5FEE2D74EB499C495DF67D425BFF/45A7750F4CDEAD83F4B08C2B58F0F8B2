@@ -1,0 +1,197 @@
+﻿using Dapper;
+using Invetario.Models;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Invetario.Data
+{
+    public class ProductoRepository
+    {
+        private readonly Conexion _conexion = new Conexion();
+
+        
+        public Producto? ObtenerPorCodigo(string codigo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Dapper toma una fila, crea el Producto (p) y la Categoria (c)
+                // y nosotros los unimos
+                string sql = @"
+                    SELECT p.*, c.* FROM Productos p
+                    INNER JOIN Categorias c ON p.CategoriaId = c.Id
+                    WHERE p.CodigoBarras = @codigo";
+
+                var resultado = db.Query<Producto, Categoria, Producto>(
+                    sql,
+                    (producto, categoria) =>
+                    {
+                        producto.Categoria = categoria;
+                        return producto;
+                    },
+                    new { codigo }
+                ).FirstOrDefault();
+
+                return resultado;
+            }
+        }
+
+        // 2. Validar Usuario (Para el Login)
+        public Usuario? ValidarUsuario(string user, string pass)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
+                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+            }
+        }
+
+        // 3. Obtener todos los productos (Para la Lista)
+        public IEnumerable<Producto> ObtenerTodos()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"SELECT p.Id, p.CodigoBarras, p.Nombre, p.Descripcion, p.PrecioCosto, p.PrecioVenta, p.CategoriaId, p.Stock, c.Nombre AS CategoriaNombre, ISNULL(c.EsPesable, 0) AS EsPesable
+                               FROM Productos p
+                               LEFT JOIN Categorias c ON p.CategoriaId = c.Id
+                               ORDER BY p.Nombre ASC";
+                return db.Query<Producto>(sql);
+            }
+        }
+
+        // 4. Insertar nuevo producto (Con todas las columnas)
+        public void Insertar(Producto p)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"INSERT INTO Productos (CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock)
+                             VALUES (@CodigoBarras, @Nombre, @Descripcion, @PrecioCosto, @PrecioVenta, @CategoriaId, @Stock)";
+                db.Execute(sql, p);
+            }
+        }
+
+        public void EliminarProducto(string codigoBarras)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "DELETE FROM Productos WHERE CodigoBarras = @codigoBarras";
+                db.Execute(sql, new { codigoBarras });
+            }
+        }
+
+        // 5. Actualizar producto existente
+        public void Actualizar(Producto p)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"UPDATE Productos 
+                             SET Nombre = @Nombre, Descripcion = @Descripcion, 
+                                 PrecioCosto = @PrecioCosto, PrecioVenta = @PrecioVenta, CategoriaId = @CategoriaId, Stock = @Stock 
+                             WHERE CodigoBarras = @CodigoBarras";
+                db.Execute(sql, p);
+            }
+        }
+
+
+        // Busca por Código Exacto, ID Exacto, o Coincidencia de Nombre
+        public IEnumerable<Producto> BuscarProductos(string filtro)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Intentamos convertir el filtro a número para buscar por ID
+                int.TryParse(filtro, out int idBuscado);
+
+                string sql = @"SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock 
+                       FROM Productos 
+                       WHERE CodigoBarras = @filtro 
+                          OR Id = @idBuscado 
+                          OR Nombre LIKE '%' + @filtro + '%'
+                       ORDER BY Nombre ASC";
+
+                return db.Query<Producto>(sql, new { filtro, idBuscado });
+            }
+        }
+
+        public IEnumerable<Categoria> ObtenerCategorias()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Trae el Id, Nombre y EsPesable de la tabla categoria
+                return db.Query<Categoria>("SELECT * FROM Categorias");
+            }
+        }
+
+        public void InsertarCategoria(Categoria cat)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "INSERT INTO Categorias (Nombre, EsPesable) VALUES (@Nombre, @EsPesable)";
+                db.Execute(sql, cat);
+            }
+        }
+        public void GuardarUsuario(Usuario user)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"INSERT INTO Usuarios (Username, Password, Rol, sexo, Ruta_foto, NombreReal) 
+                       VALUES (@Username, @Password, @Rol, @Sexo, @Ruta_foto, @NombreReal)";
+                db.Execute(sql, user);
+            }
+        }
+
+        public IEnumerable<Usuario> ObtenerTodosLosUsuarios()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Traemos todo. Usamos 'AS' si el nombre en C# es distinto al de la BD
+                string sql = "SELECT Id, Username, Password, Rol, sexo AS Sexo, Ruta_foto, NombreReal FROM Usuarios";
+                return db.Query<Usuario>(sql);
+            }
+        }
+
+        public IEnumerable<Usuario> BuscarUsuarios(string texto, string sexo, string rol)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                int.TryParse(texto, out int idBuscado);
+
+                string sql = @"SELECT Id, Username, Password, Rol, sexo AS Sexo, NombreReal, Ruta_foto 
+                       FROM Usuarios 
+                       WHERE (Username LIKE '%' + @texto + '%' 
+                          OR NombreReal LIKE '%' + @texto + '%' 
+                          OR Id = @idBuscado) ";
+
+                if (sexo != "Todos" && !string.IsNullOrEmpty(sexo))
+                {
+                    sql += " AND sexo = @sexo";
+                }
+
+                if (rol != "Todos" && !string.IsNullOrEmpty(rol))
+                {
+                    sql += " AND Rol = @rol";
+                }
+
+                return db.Query<Usuario>(sql, new { texto, idBuscado, sexo, rol });
+            }
+        }
+        public void ActualizarUsuario(Usuario user)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"UPDATE Usuarios 
+                       SET Username = @Username, Password = @Password, Rol = @Rol, sexo = @Sexo, 
+                           NombreReal = @NombreReal, Ruta_foto = @Ruta_foto 
+                       WHERE Id = @Id";
+                db.Execute(sql, user);
+            }
+        }
+
+        public void EliminarUsuario(int id)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "DELETE FROM Usuarios WHERE Id = @id";
+                db.Execute(sql, new { id });
+            }
+        }
+    }
+}

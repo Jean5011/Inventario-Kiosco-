@@ -1,0 +1,23 @@
+<Page x:Class="Invetario.Views.ListaCategoriasPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Lista de Categorías" Background="White">
+
+    <DockPanel Margin="20">
+        <TextBlock Text="📋 Lista de Categorías" FontSize="22" FontWeight="Bold" 
+                   DockPanel.Dock="Top" Margin="0,0,0,15"/>
+
+        <DataGrid x:Name="dgCategorias" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" AlternatingRowBackground="#F9F9F9"
+                  GridLinesVisibility="Horizontal" BorderThickness="1" BorderBrush="#DDD"
+                  ColumnHeaderHeight="35" RowHeight="30" FontSize="14">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                <DataGridCheckBoxColumn Header="Pesable" Binding="{Binding EsPesable}" Width="80"/>
+                <DataGridCheckBoxColumn Header="Activo" Binding="{Binding Activo}" Width="80"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Page>

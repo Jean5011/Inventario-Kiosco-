@@ -1,5 +1,6 @@
 using Dapper;
 using Invetario.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,13 +10,29 @@ namespace Invetario.Data
     {
         private readonly Conexion _conexion = new Conexion();
 
-        // 1. Buscar producto por código (Para el Escáner)
+        
         public Producto? ObtenerPorCodigo(string codigo)
         {
             using (var db = _conexion.ObtenerConexion())
             {
-                string sql = "SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock FROM Productos WHERE CodigoBarras = @codigo";
-                return db.Query<Producto>(sql, new { codigo }).FirstOrDefault();
+                // Dapper toma una fila, crea el Producto (p) y la Categoria (c)
+                // y nosotros los unimos
+                string sql = @"
+                    SELECT p.*, c.* FROM Productos p
+                    INNER JOIN Categorias c ON p.CategoriaId = c.Id
+                    WHERE p.CodigoBarras = @codigo";
+
+                var resultado = db.Query<Producto, Categoria, Producto>(
+                    sql,
+                    (producto, categoria) =>
+                    {
+                        producto.Categoria = categoria;
+                        return producto;
+                    },
+                    new { codigo }
+                ).FirstOrDefault();
+
+                return resultado;
             }
         }
 
@@ -34,7 +51,10 @@ namespace Invetario.Data
         {
             using (var db = _conexion.ObtenerConexion())
             {
-                string sql = "SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock FROM Productos ORDER BY Nombre ASC";
+                string sql = @"SELECT p.Id, p.CodigoBarras, p.Nombre, p.Descripcion, p.PrecioCosto, p.PrecioVenta, p.CategoriaId, p.Stock, c.Nombre AS CategoriaNombre, ISNULL(c.EsPesable, 0) AS EsPesable
+                               FROM Productos p
+                               LEFT JOIN Categorias c ON p.CategoriaId = c.Id
+                               ORDER BY p.Nombre ASC";
                 return db.Query<Producto>(sql);
             }
         }
@@ -44,9 +64,18 @@ namespace Invetario.Data
         {
             using (var db = _conexion.ObtenerConexion())
             {
-                string sql = @"INSERT INTO Productos (CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, Stock) 
-                             VALUES (@CodigoBarras, @Nombre, @Descripcion, @PrecioCosto, @PrecioVenta, @Stock)";
+                string sql = @"INSERT INTO Productos (CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock)
+                             VALUES (@CodigoBarras, @Nombre, @Descripcion, @PrecioCosto, @PrecioVenta, @CategoriaId, @Stock)";
                 db.Execute(sql, p);
+            }
+        }
+
+        public void EliminarProducto(string codigoBarras)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "DELETE FROM Productos WHERE CodigoBarras = @codigoBarras";
+                db.Execute(sql, new { codigoBarras });
             }
         }
 
@@ -57,7 +86,7 @@ namespace Invetario.Data
             {
                 string sql = @"UPDATE Productos 
                              SET Nombre = @Nombre, Descripcion = @Descripcion, 
-                                 PrecioCosto = @PrecioCosto, PrecioVenta = @PrecioVenta, Stock = @Stock 
+                                 PrecioCosto = @PrecioCosto, PrecioVenta = @PrecioVenta, CategoriaId = @CategoriaId, Stock = @Stock 
                              WHERE CodigoBarras = @CodigoBarras";
                 db.Execute(sql, p);
             }
@@ -82,5 +111,233 @@ namespace Invetario.Data
                 return db.Query<Producto>(sql, new { filtro, idBuscado });
             }
         }
+
+        public IEnumerable<Categoria> ObtenerCategorias()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Trae el Id, Nombre y EsPesable de la tabla categoria
+                return db.Query<Categoria>("SELECT * FROM Categorias");
+            }
+        }
+
+        public bool ExisteCategoria(string nombre)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT COUNT(1) FROM Categorias WHERE Nombre = @nombre";
+                return db.ExecuteScalar<int>(sql, new { nombre }) > 0;
+            }
+        }
+
+        public void InsertarCategoria(Categoria cat)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "INSERT INTO Categorias (Nombre, EsPesable) VALUES (@Nombre, @EsPesable)";
+                db.Execute(sql, cat);
+            }
+        }
+        public void GuardarUsuario(Usuario user)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"INSERT INTO Usuarios (Username, Password, Rol, sexo, Ruta_foto, NombreReal) 
+                       VALUES (@Username, @Password, @Rol, @Sexo, @Ruta_foto, @NombreReal)";
+                db.Execute(sql, user);
+            }
+        }
+
+        public IEnumerable<Usuario> ObtenerTodosLosUsuarios()
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                // Traemos todo. Usamos 'AS' si el nombre en C# es distinto al de la BD
+                string sql = "SELECT Id, Username, Password, Rol, sexo AS Sexo, Ruta_foto, NombreReal FROM Usuarios";
+                return db.Query<Usuario>(sql);
+            }
+        }
+
+        public IEnumerable<Usuario> BuscarUsuarios(string texto, string sexo, string rol)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                int.TryParse(texto, out int idBuscado);
+
+                string sql = @"SELECT Id, Username, Password, Rol, sexo AS Sexo, NombreReal, Ruta_foto 
+                       FROM Usuarios 
+                       WHERE (Username LIKE '%' + @texto + '%' 
+                          OR NombreReal LIKE '%' + @texto + '%' 
+                          OR Id = @idBuscado) ";
+
+                if (sexo != "Todos" && !string.IsNullOrEmpty(sexo))
+                {
+                    sql += " AND sexo = @sexo";
+                }
+
+                if (rol != "Todos" && !string.IsNullOrEmpty(rol))
+                {
+                    sql += " AND Rol = @rol";
+                }
+
+                return db.Query<Usuario>(sql, new { texto, idBuscado, sexo, rol });
+            }
+        }
+        public void ActualizarUsuario(Usuario user)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"UPDATE Usuarios 
+                       SET Username = @Username, Password = @Password, Rol = @Rol, sexo = @Sexo, 
+                           NombreReal = @NombreReal, Ruta_foto = @Ruta_foto 
+                       WHERE Id = @Id";
+                db.Execute(sql, user);
+            }
+        }
+
+        public void EliminarUsuario(int id)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "DELETE FROM Usuarios WHERE Id = @id";
+                db.Execute(sql, new { id });
+            }
+        }
+
+        public int RegistrarVenta(Venta venta, List<DetalleVenta> detalles)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                db.Open();
+                using var tx = db.BeginTransaction();
+
+                string sqlVenta = @"INSERT INTO Ventas (FechaVenta, TotalVenta, MetodoPago)
+                                    VALUES (@FechaVenta, @TotalVenta, @MetodoPago);
+                                    SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+                int idVenta = db.QuerySingle<int>(sqlVenta, venta, tx);
+
+                string sqlDetalle = @"INSERT INTO DetalleVentas (IdVenta, IdProducto, Cantidad, PrecioUnitario)
+                                      VALUES (@IdVenta, @IdProducto, @Cantidad, @PrecioUnitario)";
+
+                foreach (var d in detalles)
+                {
+                    d.IdVenta = idVenta;
+                    db.Execute(sqlDetalle, d, tx);
+                }
+
+                // Descontar stock
+                string sqlStock = "UPDATE Productos SET Stock = Stock - @Cantidad WHERE Id = @IdProducto";
+                foreach (var d in detalles)
+                {
+                    db.Execute(sqlStock, new { d.Cantidad, d.IdProducto }, tx);
+                }
+
+                tx.Commit();
+                return idVenta;
+            }
+        }
+
+        public Venta? ObtenerVentaPorId(int id)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = "SELECT Id, FechaVenta, TotalVenta, MetodoPago FROM Ventas WHERE Id = @id";
+                return db.QueryFirstOrDefault<Venta>(sql, new { id });
+            }
+        }
+
+        public List<DetalleVentaInfo> ObtenerDetallesVenta(int idVenta)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string sql = @"SELECT d.Cantidad, d.PrecioUnitario, d.Preciototal, 
+                               p.Nombre, p.CodigoBarras, ISNULL(c.EsPesable, 0) AS EsPesable
+                               FROM DetalleVentas d
+                               INNER JOIN Productos p ON d.IdProducto = p.Id
+                               LEFT JOIN Categorias c ON p.CategoriaId = c.Id
+                               WHERE d.IdVenta = @idVenta";
+                return db.Query<DetalleVentaInfo>(sql, new { idVenta }).ToList();
+            }
+        }
+
+
+        public IEnumerable<dynamic> ObtenerReporteVentas(string periodo)
+        {
+            return ObtenerReporteVentasFiltrado(periodo, null, null, null);
+        }
+
+        public IEnumerable<dynamic> ObtenerReporteVentasFiltrado(string periodo, DateTime? fechaEspecifica, int? mes, int? anio)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string filtro = periodo switch
+                {
+                    "Hoy" => "CAST(v.FechaVenta AS DATE) = CAST(GETDATE() AS DATE)",
+                    "Esta Semana" => "DATEDIFF(week, v.FechaVenta, GETDATE()) = 0",
+                    "Este Mes" => "MONTH(v.FechaVenta) = MONTH(GETDATE()) AND YEAR(v.FechaVenta) = YEAR(GETDATE())",
+                    "Este Año" => "YEAR(v.FechaVenta) = YEAR(GETDATE())",
+                    "Día específico" => "CAST(v.FechaVenta AS DATE) = @fechaEspecifica",
+                    "Mes específico" => "MONTH(v.FechaVenta) = @mes AND YEAR(v.FechaVenta) = @anio",
+                    "Año específico" => "YEAR(v.FechaVenta) = @anio",
+                    "Todas" => "1=1",
+                    _ => "1=1"
+                };
+
+                string sql = $@"SELECT v.Id, v.FechaVenta AS Fecha, v.TotalVenta AS Total, v.MetodoPago
+                        FROM Ventas v 
+                        WHERE {filtro} 
+                        ORDER BY v.FechaVenta DESC";
+
+                return db.Query(sql, new { fechaEspecifica = fechaEspecifica?.Date, mes, anio });
+            }
+        }
+
+        public List<VentaReporte> ObtenerVentasPorPeriodo(string periodo)
+        {
+            using (var db = _conexion.ObtenerConexion())
+            {
+                string queryFiltro = periodo switch
+                {
+                    "Diaria" => "CAST(v.FechaVenta AS DATE) = CAST(GETDATE() AS DATE)",
+                    "Semanal" => "v.FechaVenta >= DATEADD(day, -7, GETDATE())",
+                    "Mensual" => "MONTH(v.FechaVenta) = MONTH(GETDATE()) AND YEAR(v.FechaVenta) = YEAR(GETDATE())",
+                    "Anual" => "YEAR(v.FechaVenta) = YEAR(GETDATE())",
+                    _ => "1=1"
+                };
+
+                string sql = $@"SELECT v.Id, v.FechaVenta AS Fecha, v.TotalVenta AS Total, v.MetodoPago,
+                'N/A' AS NombreUsuario
+                FROM Ventas v 
+                WHERE {queryFiltro} 
+                ORDER BY v.FechaVenta DESC";
+
+                return db.Query<VentaReporte>(sql).ToList();
+            }
+        }
+            public List<VentaReporte> ObtenerVentasFiltroEspecifico(int? dia, int? mes, int? anio)
+            {
+                using (var db = _conexion.ObtenerConexion())
+                {
+                    var condiciones = new List<string>();
+
+                    if (dia.HasValue)
+                        condiciones.Add("DAY(v.FechaVenta) = @dia");
+                    if (mes.HasValue)
+                        condiciones.Add("MONTH(v.FechaVenta) = @mes");
+                    if (anio.HasValue)
+                        condiciones.Add("YEAR(v.FechaVenta) = @anio");
+
+                    string where = condiciones.Count > 0 ? string.Join(" AND ", condiciones) : "1=1";
+
+                    string sql = $@"SELECT v.Id, v.FechaVenta AS Fecha, v.TotalVenta AS Total, v.MetodoPago,
+                    'N/A' AS NombreUsuario
+                    FROM Ventas v 
+                    WHERE {where} 
+                    ORDER BY v.FechaVenta DESC";
+
+                    return db.Query<VentaReporte>(sql, new { dia, mes, anio }).ToList();
+                }
+            }
+        }
     }
-}

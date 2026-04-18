@@ -1,0 +1,185 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+
+namespace Invetario.Views
+{
+    public partial class VentasPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+        private readonly ObservableCollection<Producto> _carrito = new ObservableCollection<Producto>();
+
+        // Variable temporal para guardar el producto pesable mientras se espera el precio
+        private Producto? _productoPendiente;
+
+        public VentasPage()
+        {
+            InitializeComponent();
+            dgCarrito.ItemsSource = _carrito;
+        }
+
+        private void ActualizarTotal()
+        {
+            decimal total = _carrito.Sum(item => item.Subtotal);
+            lblTotal.Text = $"Total: {total:C2}";
+        }
+
+        // ============================================================
+        // EVENTO: El usuario escanea o escribe un código y presiona Enter
+        // ============================================================
+        private void txtCodigo_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter) return;
+
+            string codigo = txtCodigo.Text.Trim();
+            if (string.IsNullOrEmpty(codigo)) return;
+
+            var productoEncontrado = _repo.ObtenerPorCodigo(codigo);
+
+            if (productoEncontrado == null)
+            {
+                MessageBox.Show("No se encontró ningún producto.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                txtCodigo.SelectAll();
+                txtCodigo.Focus();
+                return;
+            }
+
+            // --- LÓGICA DE BIFURCACIÓN ---
+            if (productoEncontrado.Categoria != null && productoEncontrado.Categoria.EsPesable)
+            {
+                // Producto pesable: guardar temporalmente y habilitar campo de precio
+                _productoPendiente = productoEncontrado;
+                lblProductoPesable.Text = $"⚖ {productoEncontrado.Nombre} — Ingrese monto:";
+                txtPrecioManual.IsEnabled = true;
+                txtPrecioManual.Clear();
+                txtPrecioManual.Focus();
+            }
+            else
+            {
+                // Producto normal: agregar directo al carrito
+                AgregarAlCarrito(productoEncontrado);
+                txtCodigo.Clear();
+                txtCodigo.Focus();
+            }
+        }
+
+        // ============================================================
+        // EVENTO: El usuario ingresa el precio manual y presiona Enter
+        // ============================================================
+        private void txtPrecioManual_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter) return;
+
+            if (_productoPendiente == null) return;
+
+            if (!decimal.TryParse(txtPrecioManual.Text, out decimal precioIngresado) || precioIngresado <= 0)
+            {
+                MessageBox.Show("Ingrese un monto válido mayor a 0.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                txtPrecioManual.SelectAll();
+                txtPrecioManual.Focus();
+                return;
+            }
+
+            // Asignar el precio manual y agregar al carrito
+            _productoPendiente.PrecioManual = precioIngresado;
+            AgregarAlCarrito(_productoPendiente);
+
+            // Limpiar estado
+            _productoPendiente = null;
+            lblProductoPesable.Text = "";
+            txtPrecioManual.Clear();
+            txtPrecioManual.IsEnabled = false;
+            txtCodigo.Clear();
+            txtCodigo.Focus();
+        }
+
+        // ============================================================
+        // Agregar producto al carrito (o sumar cantidad si ya existe)
+        // ============================================================
+        private void AgregarAlCarrito(Producto p)
+        {
+            // Para productos pesables cada entrada es independiente (precio distinto)
+            if (p.EsPesable || (p.Categoria != null && p.Categoria.EsPesable))
+            {
+                _carrito.Add(new Producto
+                {
+                    Id = p.Id,
+                    CodigoBarras = p.CodigoBarras,
+                    Nombre = p.Nombre,
+                    Descripcion = p.Descripcion,
+                    PrecioCosto = p.PrecioCosto,
+                    PrecioVenta = p.PrecioVenta,
+                    Categoria = p.Categoria,
+                    CategoriaId = p.CategoriaId,
+                    Stock = p.Stock,
+                    EsPesable = true,
+                    PrecioManual = p.PrecioManual,
+                    Cantidad = 1
+                });
+            }
+            else
+            {
+                var existente = _carrito.FirstOrDefault(x => x.CodigoBarras == p.CodigoBarras || x.Id == p.Id);
+
+                if (existente != null)
+                {
+                    existente.Cantidad++;
+                    dgCarrito.Items.Refresh();
+                }
+                else
+                {
+                    _carrito.Add(new Producto
+                    {
+                        Id = p.Id,
+                        CodigoBarras = p.CodigoBarras,
+                        Nombre = p.Nombre,
+                        Descripcion = p.Descripcion,
+                        PrecioCosto = p.PrecioCosto,
+                        PrecioVenta = p.PrecioVenta,
+                        Categoria = p.Categoria,
+                        CategoriaId = p.CategoriaId,
+                        Stock = p.Stock,
+                        Cantidad = 1
+                    });
+                }
+            }
+
+            ActualizarTotal();
+        }
+
+        private void btnEliminarFila_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Producto producto)
+            {
+                _carrito.Remove(producto);
+                ActualizarTotal();
+            }
+        }
+
+        private void btnLimpiarCarrito_Click(object sender, RoutedEventArgs e)
+        {
+            if (_carrito.Count == 0) return;
+
+            var resultado = MessageBox.Show("¿Está seguro de limpiar todo el carrito?",
+                "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (resultado == MessageBoxResult.Yes)
+            {
+                _carrito.Clear();
+                ActualizarTotal();
+            }
+        }
+
+        public void AgregarProductoDesdeAfuera(Producto p)
+        {
+            if (p == null) return;
+            AgregarAlCarrito(p);
+        }
+    }
+}

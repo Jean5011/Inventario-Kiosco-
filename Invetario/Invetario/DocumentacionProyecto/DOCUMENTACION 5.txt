@@ -1,0 +1,106 @@
+Documentación del Proyecto "Invetario" - Reporte 5
+Cambios realizados después de la Documentación 4
+
+================================================================================
+
+CONTEXTO:
+   Después de la Documentación 4 se detectó un error de compilación en el
+   modelo Producto relacionado con una propiedad duplicada, y se corrigió
+   el formato general de la clase.
+
+================================================================================
+
+1. Corrección de propiedad duplicada CategoriaId en el modelo Producto
+
+   Problema reportado:
+   - Error CS0229: Ambigüedad entre 'Producto.CategoriaId' y
+	 'Producto.CategoriaId'.
+   - La clase Producto tenía la propiedad CategoriaId definida dos veces,
+	 lo que provocaba un error de compilación en cualquier archivo que
+	 hiciera referencia a dicha propiedad (por ejemplo, NuevoProductoPage).
+
+   Causa raíz:
+   - La propiedad CategoriaId estaba declarada de forma duplicada dentro de
+	 la clase Producto en el archivo Invetario/Models/Producto.cs.
+   - Además, el archivo presentaba indentación inconsistente y llaves de
+	 cierre mal alineadas, lo que posiblemente contribuyó a que la
+	 duplicación pasara desapercibida.
+
+   Solución aplicada:
+   - Se eliminó la declaración duplicada de CategoriaId, dejando una sola
+	 definición en la línea correspondiente.
+   - Se corrigió la indentación de todas las propiedades de la clase para
+	 que estuvieran correctamente alineadas.
+
+   Antes (resumen del problema):
+	   public int CategoriaId { get; set; }    // primera declaración (línea 11)
+	   ...
+	   public int Cantidad { get; set; } = 1;
+		   public decimal Subtotal => PrecioVenta * Cantidad;  // indentación incorrecta
+
+			   public int Stock { get; set; }                  // indentación incorrecta
+		   }                                                   // llave mal alineada
+
+   Después (clase corregida):
+	   public int CategoriaId { get; set; }
+	   ...
+	   public int Cantidad { get; set; } = 1;
+	   public decimal Subtotal => PrecioVenta * Cantidad;
+	   public int Stock { get; set; }
+
+   Archivo modificado:
+   - Invetario/Models/Producto.cs
+
+   Estado: ✅ Aplicado y funcional
+
+---
+
+2. Validación técnica
+
+   - Se verificó que el error CS0229 quedó resuelto tras la corrección.
+   - La clase Producto ahora contiene una única propiedad CategoriaId.
+
+   Estado: ✅ Validado
+
+---
+
+3. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Models/Producto.cs
+
+   NUEVOS:
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 5.txt
+
+---
+
+4. Estado actual del modelo Producto (actualizado)
+
+   Propiedades vigentes:
+   - Id (int)
+   - CodigoBarras (string)
+   - Nombre (string)
+   - Descripcion (string)
+   - PrecioCosto (decimal)
+   - PrecioVenta (decimal)
+   - CategoriaId (int)
+   - Precio (decimal) — alias de PrecioVenta para compatibilidad XAML
+   - Cantidad (int) — valor inicial 1
+   - Subtotal (decimal) — calculado: PrecioVenta * Cantidad
+   - Stock (int)
+
+---
+
+5. Estado actual del flujo principal (actualizado)
+
+   ✅ Login: Funciona
+   ✅ Navegación entre páginas: Funciona
+   ✅ Lista de productos: Funciona
+   ✅ Botón "🛒 Vender" desde lista: Funciona
+   ✅ Ventas: Acumula cantidad del mismo producto en una sola fila
+   ✅ Cálculo total: Correcto usando subtotal por cantidad
+   ✅ Nuevo Producto: Compila correctamente sin ambigüedad en CategoriaId
+
+================================================================================
+Documentación generada el: 2025-07-14 (hora local del desarrollador)
+================================================================================

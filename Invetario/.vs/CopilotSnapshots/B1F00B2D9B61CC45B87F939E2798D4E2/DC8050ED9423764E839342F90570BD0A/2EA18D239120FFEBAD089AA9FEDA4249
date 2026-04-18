@@ -1,0 +1,38 @@
+﻿<Page x:Class="Invetario.Views.ReportesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Reportes de Ventas" Background="White">
+
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,20">
+            <TextBlock Text="Periodo:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+            <ComboBox x:Name="cmbPeriodo" Width="150" SelectionChanged="cmbPeriodo_SelectionChanged">
+                <ComboBoxItem Content="Hoy" IsSelected="True"/>
+                <ComboBoxItem Content="Esta Semana"/>
+                <ComboBoxItem Content="Este Mes"/>
+                <ComboBoxItem Content="Este Año"/>
+            </ComboBox>
+
+            <TextBlock x:Name="lblTotalPeriodo" Text="Total: $0.00" FontSize="20" 
+                       Foreground="#28a745" FontWeight="Bold" Margin="50,0,0,0"/>
+        </StackPanel>
+
+        <DataGrid x:Name="dgVentas" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID Venta" Binding="{Binding Id}" Width="80"/>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=\{0:dd/MM/yyyy HH:mm\}}" Width="*"/>
+                <DataGridTextColumn Header="Usuario" Binding="{Binding NombreUsuario}" Width="*"/>
+                <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=C}" Width="120"/>
+
+                <DataGridTemplateColumn Header="Acciones" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="👁 Ver Ticket" Click="btnVerTicket_Click" 
+                                    Background="#17a2b8" Foreground="White" Padding="5,2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Page>

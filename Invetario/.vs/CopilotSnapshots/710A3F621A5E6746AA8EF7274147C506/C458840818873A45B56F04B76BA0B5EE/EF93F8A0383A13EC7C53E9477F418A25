@@ -1,0 +1,102 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ListaProductosPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+        private List<Producto> _todosLosProductos = new List<Producto>();
+        private List<Producto> _productosFiltrados = new List<Producto>();
+        private int _paginaActual = 1;
+        private const int _filasPorPagina = 20;
+
+        public ListaProductosPage()
+        {
+            InitializeComponent();
+            CargarProductos();
+            CargarCombo();
+        }
+
+        public void CargarProductos()
+        {
+            _todosLosProductos = _repo.ObtenerTodos().ToList();
+            _productosFiltrados = _todosLosProductos;
+            _paginaActual = 1;
+            MostrarPagina();
+        }
+
+        private void MostrarPagina()
+        {
+            int totalPaginas = (_productosFiltrados.Count + _filasPorPagina - 1) / _filasPorPagina;
+            if (totalPaginas == 0) totalPaginas = 1;
+            if (_paginaActual > totalPaginas) _paginaActual = totalPaginas;
+
+            dgProductos.ItemsSource = _productosFiltrados
+                .Skip((_paginaActual - 1) * _filasPorPagina)
+                .Take(_filasPorPagina)
+                .ToList();
+
+            txtPagina.Text = $"Página {_paginaActual} de {totalPaginas}";
+        }
+
+        private void txtFiltro_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string texto = txtFiltro.Text.ToLower();
+
+            _productosFiltrados = _todosLosProductos.Where(p =>
+                p.Nombre.ToLower().Contains(texto) ||
+                p.CodigoBarras == texto ||
+                p.Id.ToString() == texto).ToList();
+
+            _paginaActual = 1;
+            MostrarPagina();
+        }
+
+        private void btnPaginaAnterior_Click(object sender, RoutedEventArgs e)
+        {
+            if (_paginaActual > 1)
+            {
+                _paginaActual--;
+                MostrarPagina();
+            }
+        }
+
+        private void btnPaginaSiguiente_Click(object sender, RoutedEventArgs e)
+        {
+            int totalPaginas = (_productosFiltrados.Count + _filasPorPagina - 1) / _filasPorPagina;
+            if (_paginaActual < totalPaginas)
+            {
+                _paginaActual++;
+                MostrarPagina();
+            }
+        }
+
+
+        private void CargarCombo()
+        {
+            var repo = new ProductoRepository();
+            // Llenamos el desplegable con las categorías de la base de datos
+            cmbCategorias.ItemsSource = repo.ObtenerCategorias().ToList();
+        }
+        private void btnVenderDesdeLista_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Producto productoSeleccionado)
+            {
+                if (Window.GetWindow(this) is MainWindow main)
+                {
+                    main.EnviarProductoAVentas(productoSeleccionado);
+                }
+            }
+        }
+
+        private void btnIrANuevaCategoria_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new NuevaCategoriaPage());
+        }
+    }
+}

@@ -12,11 +12,18 @@ namespace Invetario.Views
         public NuevoProductoPage()
         {
             InitializeComponent();
+            CargarCategorias();
+        }
+
+        private void CargarCategorias()
+        {
+            cmbCategoria.ItemsSource = _repo.ObtenerCategorias();
         }
 
         private void btnGuardar_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtCodigo.Text) ||
+            if (cmbCategoria.SelectedValue == null ||
+                string.IsNullOrWhiteSpace(txtCodigo.Text) ||
                 string.IsNullOrWhiteSpace(txtNombre.Text) ||
                 string.IsNullOrWhiteSpace(txtPrecio.Text) ||
                 string.IsNullOrWhiteSpace(txtStock.Text))
@@ -34,20 +41,39 @@ namespace Invetario.Views
                 return;
             }
 
+            // Verificar si el código de barras ya existe
+            var productoExistente = _repo.ObtenerPorCodigo(txtCodigo.Text.Trim());
+            if (productoExistente != null)
+            {
+                MessageBox.Show("El código de barras ya está registrado en otro producto.", "Código Duplicado",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                txtCodigo.Focus();
+                return;
+            }
+
             var producto = new Producto
             {
                 CodigoBarras = txtCodigo.Text.Trim(),
                 Nombre = txtNombre.Text.Trim(),
-                Precio = precio,
-                Stock = stock
+                Descripcion = txtDescripcion.Text.Trim(),
+                PrecioVenta = precio,
+                Stock = stock,
+                CategoriaId = (int)cmbCategoria.SelectedValue
             };
 
             _repo.Insertar(producto);
             MessageBox.Show("Producto guardado correctamente", "Éxito",
                 MessageBoxButton.OK, MessageBoxImage.Information);
 
+            if (Window.GetWindow(this) is MainWindow mainWindow)
+            {
+                mainWindow.RefrescarListaProductos();
+            }
+
+            cmbCategoria.SelectedIndex = -1;
             txtCodigo.Clear();
             txtNombre.Clear();
+            txtDescripcion.Clear();
             txtPrecio.Clear();
             txtStock.Clear();
             txtCodigo.Focus();

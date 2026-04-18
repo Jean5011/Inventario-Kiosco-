@@ -10,11 +10,11 @@ none
 false
 TRACE;RELEASE;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario\Invetario\App.xaml
-61860320252
+141675791538
 
-151540826990
+27-1739523228
 2291775302771
-Views\ListaProductosPage.xaml;Views\LoginView.xaml;Views\MainWindow.xaml;Views\ModificarProductoPage.xaml;Views\NuevoProductoPage.xaml;Views\VentasPage.xaml;
+Views\AdminUsuariosPage.xaml;Views\ListaCategoriasPage.xaml;Views\ListaProductosPage.xaml;Views\LoginView.xaml;Views\MainWindow.xaml;Views\ModificarProductoPage.xaml;Views\NuevaCategoriaPage.xaml;Views\NuevoProductoPage.xaml;Views\NuevoUsuarioWindow.xaml;Views\PesableDialog.xaml;Views\ReportesPage.xaml;Views\SeleccionProductoWindow.xaml;Views\TicketWindow.xaml;Views\VentasPage.xaml;
 
 False
 
