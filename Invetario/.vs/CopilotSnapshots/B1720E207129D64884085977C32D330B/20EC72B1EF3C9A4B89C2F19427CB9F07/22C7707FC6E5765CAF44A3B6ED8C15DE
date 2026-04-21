@@ -1,0 +1,68 @@
+﻿-- ============================================================
+-- Script para GENERAR inserts de todos los datos de KioscoDB
+-- Ejecutar este script en SSMS contra tu base KioscoDB
+-- El resultado será un conjunto de INSERT listos para usar
+-- ============================================================
+
+-- =====================
+-- 1. CATEGORIAS
+-- =====================
+SELECT 'INSERT INTO Categorias (Id, Nombre, EsPesable) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(Nombre, '''', '''''') + ''', '
+	+ CAST(EsPesable AS NVARCHAR) + ');'
+FROM Categorias
+ORDER BY Id;
+
+-- =====================
+-- 2. USUARIOS
+-- =====================
+SELECT 'INSERT INTO Usuarios (Id, Username, Password, Rol, sexo, Ruta_foto, NombreReal) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(Username, '''', '''''') + ''', '
+	+ '''' + REPLACE(Password, '''', '''''') + ''', '
+	+ '''' + REPLACE(Rol, '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(sexo, ''), '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(Ruta_foto, ''), '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(NombreReal, ''), '''', '''''') + ''');'
+FROM Usuarios
+ORDER BY Id;
+
+-- =====================
+-- 3. PRODUCTOS
+-- =====================
+SELECT 'INSERT INTO Productos (Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(CodigoBarras, '''', '''''') + ''', '
+	+ '''' + REPLACE(Nombre, '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(Descripcion, ''), '''', '''''') + ''', '
+	+ CAST(PrecioCosto AS NVARCHAR) + ', '
+	+ CAST(PrecioVenta AS NVARCHAR) + ', '
+	+ CAST(CategoriaId AS NVARCHAR) + ', '
+	+ CAST(Stock AS NVARCHAR) + ');'
+FROM Productos
+ORDER BY Id;
+
+-- =====================
+-- 4. VENTAS
+-- =====================
+SELECT 'INSERT INTO Ventas (Id, FechaVenta, TotalVenta, MetodoPago) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + CONVERT(NVARCHAR, FechaVenta, 121) + ''', '
+	+ CAST(TotalVenta AS NVARCHAR) + ', '
+	+ '''' + REPLACE(ISNULL(MetodoPago, 'Efectivo'), '''', '''''') + ''');'
+FROM Ventas
+ORDER BY Id;
+
+-- =====================
+-- 5. DETALLE DE VENTAS
+-- =====================
+SELECT 'INSERT INTO DetalleVentas (Id, IdVenta, IdProducto, Cantidad, PrecioUnitario, Preciototal) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ CAST(IdVenta AS NVARCHAR) + ', '
+	+ CAST(IdProducto AS NVARCHAR) + ', '
+	+ CAST(Cantidad AS NVARCHAR) + ', '
+	+ CAST(PrecioUnitario AS NVARCHAR) + ', '
+	+ CAST(Preciototal AS NVARCHAR) + ');'
+FROM DetalleVentas
+ORDER BY Id;

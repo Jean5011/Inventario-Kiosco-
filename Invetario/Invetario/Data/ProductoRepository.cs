@@ -3,6 +3,7 @@ using Invetario.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace Invetario.Data
 {
@@ -41,8 +42,15 @@ namespace Invetario.Data
         {
             using (var db = _conexion.ObtenerConexion())
             {
-                string sql = "SELECT * FROM Usuarios WHERE Username = @user AND Password = @pass";
-                return db.QueryFirstOrDefault<Usuario>(sql, new { user, pass });
+                string sql = "SELECT Id, Username, Password, Rol, sexo AS Sexo, Ruta_foto, NombreReal FROM Usuarios WHERE Username = @user";
+                var usuario = db.QueryFirstOrDefault<Usuario>(sql, new { user });
+                if (usuario == null) return null;
+
+                // Compatibilidad: acepta hash PBKDF2 y también texto plano legado
+                if (VerificarPassword(pass, usuario.Password) || pass == usuario.Password)
+                    return usuario;
+
+                return null;
             }
         }
 
@@ -144,7 +152,16 @@ namespace Invetario.Data
             {
                 string sql = @"INSERT INTO Usuarios (Username, Password, Rol, sexo, Ruta_foto, NombreReal) 
                        VALUES (@Username, @Password, @Rol, @Sexo, @Ruta_foto, @NombreReal)";
-                db.Execute(sql, user);
+                var parametros = new
+                {
+                    user.Username,
+                    Password = HashPassword(user.Password),
+                    user.Rol,
+                    user.Sexo,
+                    user.Ruta_foto,
+                    user.NombreReal
+                };
+                db.Execute(sql, parametros);
             }
         }
 
@@ -191,7 +208,21 @@ namespace Invetario.Data
                        SET Username = @Username, Password = @Password, Rol = @Rol, sexo = @Sexo, 
                            NombreReal = @NombreReal, Ruta_foto = @Ruta_foto 
                        WHERE Id = @Id";
-                db.Execute(sql, user);
+
+                string passwordFinal = user.Password.StartsWith("PBKDF2$") ? user.Password : HashPassword(user.Password);
+
+                var parametros = new
+                {
+                    user.Id,
+                    user.Username,
+                    Password = passwordFinal,
+                    user.Rol,
+                    user.Sexo,
+                    user.NombreReal,
+                    user.Ruta_foto
+                };
+
+                db.Execute(sql, parametros);
             }
         }
 
@@ -220,6 +251,15 @@ namespace Invetario.Data
                 string sqlDetalle = @"INSERT INTO DetalleVentas (IdVenta, IdProducto, Cantidad, PrecioUnitario)
                                       VALUES (@IdVenta, @IdProducto, @Cantidad, @PrecioUnitario)";
 
+                // Validar stock suficiente antes de registrar detalle
+                string sqlStockActual = "SELECT Stock FROM Productos WHERE Id = @IdProducto";
+                foreach (var d in detalles)
+                {
+                    int stockActual = db.QuerySingleOrDefault<int>(sqlStockActual, new { d.IdProducto }, tx);
+                    if (stockActual < d.Cantidad)
+                        throw new InvalidOperationException($"Stock insuficiente para el producto ID {d.IdProducto}. Stock actual: {stockActual}, solicitado: {d.Cantidad}.");
+                }
+
                 foreach (var d in detalles)
                 {
                     d.IdVenta = idVenta;
@@ -236,6 +276,31 @@ namespace Invetario.Data
                 tx.Commit();
                 return idVenta;
             }
+        }
+
+        private static string HashPassword(string password)
+        {
+            byte[] salt = RandomNumberGenerator.GetBytes(16);
+            const int iteraciones = 100000;
+            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, iteraciones, HashAlgorithmName.SHA256, 32);
+            return $"PBKDF2${iteraciones}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
+        }
+
+        private static bool VerificarPassword(string passwordIngresado, string hashGuardado)
+        {
+            if (string.IsNullOrWhiteSpace(hashGuardado) || !hashGuardado.StartsWith("PBKDF2$"))
+                return false;
+
+            string[] partes = hashGuardado.Split('$');
+            if (partes.Length != 4) return false;
+
+            if (!int.TryParse(partes[1], out int iteraciones)) return false;
+
+            byte[] salt = Convert.FromBase64String(partes[2]);
+            byte[] hashEsperado = Convert.FromBase64String(partes[3]);
+            byte[] hashActual = Rfc2898DeriveBytes.Pbkdf2(passwordIngresado, salt, iteraciones, HashAlgorithmName.SHA256, hashEsperado.Length);
+
+            return CryptographicOperations.FixedTimeEquals(hashActual, hashEsperado);
         }
 
         public Venta? ObtenerVentaPorId(int id)

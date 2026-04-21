@@ -21,8 +21,8 @@ namespace Invetario
             lblUsuario.Text = $"Hola, {UsuarioActual.Username}";
 
             string fotoPath = UsuarioActual.Sexo == "Mujer"
-                ? "pack://application:,,,/Foto empleado/empleado femenino.png"
-                : "pack://application:,,,/Foto empleado/Empeado masculino.png";
+                ? "pack://application:,,,/Assets/empleado femenino.png"
+                : "pack://application:,,,/Assets/Empeado masculino.png";
             imgUsuario.ImageSource = new BitmapImage(new Uri(fotoPath, UriKind.Absolute));
 
             if (UsuarioActual.Rol == "Admin")

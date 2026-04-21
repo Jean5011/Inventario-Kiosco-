@@ -2,6 +2,7 @@ using Invetario.Data;
 using Invetario.Models;
 using System;
 using System.Collections.Generic;
+using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -48,7 +49,7 @@ namespace Invetario.Views
             var doc = new FlowDocument
             {
                 PageWidth = 300,
-                PagePadding = new Thickness(10),
+                PagePadding = new Thickness(0),
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 11
             };
@@ -82,6 +83,7 @@ namespace Invetario.Views
             }
 
             Linea("--------------------------------");
+            Linea("--------------------------------");
             Linea($"TOTAL:       {total:C2}", true, 13, TextAlignment.Right);
             Linea("================================");
             Linea("¡Gracias por su compra!", false, 11, TextAlignment.Center);
@@ -89,23 +91,42 @@ namespace Invetario.Views
             return doc;
         }
 
-        private void btnImprimir_Click(object sender, RoutedEventArgs e)
+        public void ImprimirTicket()
         {
             try
             {
                 var pd = new PrintDialog();
-                if (pd.ShowDialog() == true)
-                {
-                    var paginator = ((IDocumentPaginatorSource)_documento).DocumentPaginator;
-                    paginator.PageSize = new Size(280, 600);
-                    pd.PrintDocument(paginator, "Ticket de Venta");
-                }
+                if (pd.ShowDialog() != true)
+                    return;
+
+                // Configuración térmica: ancho fijo y altura dinámica del contenido completo
+                _documento.PageWidth = 300;
+                _documento.PagePadding = new Thickness(0);
+                _documento.ColumnWidth = 300;
+
+                var paginator = ((IDocumentPaginatorSource)_documento).DocumentPaginator;
+                paginator.ComputePageCount();
+
+                double altoDocumento = Math.Max(paginator.PageSize.Height, 300);
+                if (double.IsNaN(altoDocumento) || altoDocumento <= 0)
+                    altoDocumento = 1200;
+
+                pd.PrintTicket.PageMediaSize = new PageMediaSize(300, altoDocumento);
+                pd.PrintTicket.PageOrientation = PageOrientation.Portrait;
+
+                // Imprimir el documento completo evita truncado visual del viewer
+                pd.PrintDocument(paginator, "Ticket de Venta");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"No se pudo imprimir:\n{ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"No se pudo imprimir el ticket. Verifique impresora y conexión.\n\nDetalle: {ex.Message}",
+                    "Error de impresión", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void btnImprimir_Click(object sender, RoutedEventArgs e)
+        {
+            ImprimirTicket();
         }
 
         private void btnCerrar_Click(object sender, RoutedEventArgs e)
@@ -118,7 +139,7 @@ namespace Invetario.Views
             var doc = new FlowDocument
             {
                 PageWidth = 300,
-                PagePadding = new Thickness(10),
+                PagePadding = new Thickness(0),
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 11
             };
@@ -151,6 +172,7 @@ namespace Invetario.Views
                     Linea($"  {item.Cantidad} x {item.PrecioUnitario:C2}  {item.Preciototal,8:C2}");
             }
 
+            Linea("--------------------------------");
             Linea("--------------------------------");
             Linea($"TOTAL:       {total:C2}", true, 13, TextAlignment.Right);
             Linea("================================");

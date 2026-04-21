@@ -19,16 +19,126 @@ namespace Invetario.Views
         private readonly ProductoRepository _repo = new ProductoRepository();
         private readonly ObservableCollection<Producto> _carrito = new ObservableCollection<Producto>();
 
+        // ============================================================
+        // ESCÁNER HID: Acumulador por velocidad de tecleo
+        // El escáner envía todas las teclas en <50ms. El humano tarda >200ms.
+        // Si el foco está en un TextBox del usuario, lo dejamos escribir normal.
+        // ============================================================
+        private string _bufferScanner = "";
+        private DateTime _ultimaTecla = DateTime.MinValue;
+        private const int UmbralMs = 100; // teclas del escáner llegan en <50ms
+
         public VentasPage()
         {
             InitializeComponent();
             dgCarrito.ItemsSource = _carrito;
         }
 
+        private void Page_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Si el foco está en cualquier TextBox, no interceptar.
+            // Así Enter funciona por el handler propio del control (manual o escáner con foco en textbox).
+            if (Keyboard.FocusedElement is TextBox)
+                return;
+
+            var ahora = DateTime.Now;
+
+            // Si pasó mucho tiempo desde la última tecla, reiniciar buffer
+            if ((ahora - _ultimaTecla).TotalMilliseconds > UmbralMs)
+                _bufferScanner = "";
+
+            _ultimaTecla = ahora;
+
+            if (e.Key == Key.Return)
+            {
+                string codigo = _bufferScanner.Trim();
+                _bufferScanner = "";
+                if (!string.IsNullOrEmpty(codigo))
+                    ProcesarCodigoEscaneado(codigo);
+                e.Handled = true;
+                return;
+            }
+
+            // Acumular carácter legible
+            string caracter = ObtenerCaracter(e);
+            if (!string.IsNullOrEmpty(caracter))
+                _bufferScanner += caracter;
+        }
+
+        private static string ObtenerCaracter(KeyEventArgs e)
+        {
+            bool mayus = Keyboard.IsKeyToggled(Key.CapsLock) ^ Keyboard.IsKeyDown(Key.LeftShift) ^ Keyboard.IsKeyDown(Key.RightShift);
+            if (e.Key >= Key.A && e.Key <= Key.Z)
+                return mayus ? e.Key.ToString() : e.Key.ToString().ToLower();
+            if (e.Key >= Key.D0 && e.Key <= Key.D9)
+                return ((int)(e.Key - Key.D0)).ToString();
+            if (e.Key >= Key.NumPad0 && e.Key <= Key.NumPad9)
+                return ((int)(e.Key - Key.NumPad0)).ToString();
+            return e.Key switch
+            {
+                Key.Subtract or Key.OemMinus => "-",
+                Key.Space => " ",
+                _ => ""
+            };
+        }
+
+        private void ProcesarCodigoEscaneado(string codigo)
+        {
+            txtCodigo.Text = codigo;
+            var source = PresentationSource.FromVisual(this);
+            if (source == null) return;
+            var args = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, Key.Enter)
+            {
+                RoutedEvent = KeyDownEvent
+            };
+            txtCodigo_KeyDown(txtCodigo, args);
+        }
+
         private void ActualizarTotal()
         {
             decimal total = _carrito.Sum(item => item.Subtotal);
             lblTotal.Text = $"Total: {total:C2}";
+        }
+
+        private void txtNombre_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+                BuscarPorNombre();
+        }
+
+        private void btnBuscarNombre_Click(object sender, RoutedEventArgs e)
+        {
+            BuscarPorNombre();
+        }
+
+        private void BuscarPorNombre()
+        {
+            string nombre = txtNombre.Text.Trim();
+            if (string.IsNullOrEmpty(nombre)) return;
+
+            var resultados = _repo.BuscarProductos(nombre).ToList();
+
+            if (resultados.Count == 0)
+            {
+                MessageBox.Show("No se encontraron productos con ese nombre.", "Sin resultados",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (resultados.Count == 1)
+            {
+                txtNombre.Clear();
+                AgregarAlCarrito(resultados[0]);
+                return;
+            }
+
+            var ventana = new SeleccionProductoWindow(resultados);
+            ventana.Owner = Window.GetWindow(this);
+            if (ventana.ShowDialog() == true && ventana.ProductoSeleccionado != null)
+            {
+                txtNombre.Clear();
+                AgregarAlCarrito(ventana.ProductoSeleccionado);
+            }
         }
 
         // ============================================================

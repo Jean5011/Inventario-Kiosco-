@@ -2,6 +2,7 @@ using Invetario.Data;
 using Invetario.Models;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Invetario.Views
 {
@@ -13,6 +14,20 @@ namespace Invetario.Views
         {
             InitializeComponent();
             CargarCategorias();
+        }
+
+        private void NuevoProductoPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            txtCodigo.Focus();
+        }
+
+        private void txtCodigo_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                e.Handled = true;
+                txtNombre.Focus();
+            }
         }
 
         private void CargarCategorias()

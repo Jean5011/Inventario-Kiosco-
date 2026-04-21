@@ -11,8 +11,8 @@ namespace Invetario.Converters
         {
             string sexo = value as string ?? "Hombre";
             string path = sexo == "Mujer"
-                ? "pack://application:,,,/Foto empleado/empleado femenino.png"
-                : "pack://application:,,,/Foto empleado/Empeado masculino.png";
+                ? "pack://application:,,,/Assets/empleado femenino.png"
+                : "pack://application:,,,/Assets/Empeado masculino.png";
 
             return new BitmapImage(new Uri(path, UriKind.Absolute));
         }

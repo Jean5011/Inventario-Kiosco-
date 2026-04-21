@@ -1,0 +1,6 @@
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.csproj.AssemblyReference.cache
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.AssemblyInfoInputs.cache
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.AssemblyInfo.cs
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.csproj.CoreCompileInputs.cache
+C:\Users\jeanp\Desktop\Poyectos\Inventario(KioscoBerta)\Invetario.Tests\obj\Debug\net10.0-windows\Invetario.Tests.sourcelink.json

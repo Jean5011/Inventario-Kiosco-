@@ -3,6 +3,7 @@ using Invetario.Models;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Invetario.Views
 {
@@ -17,6 +18,35 @@ namespace Invetario.Views
             CargarCategorias();
         }
 
+        private void ModificarProductoPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            txtBuscarCodigo.Focus();
+        }
+
+        private void txtBuscarCodigo_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                e.Handled = true;
+                string codigo = txtBuscarCodigo.Text.Trim();
+                if (!string.IsNullOrEmpty(codigo))
+                    BuscarProductoParaEditar(codigo);
+            }
+        }
+
+        private void BuscarProductoParaEditar(string codigo)
+        {
+            _productoActual = _repo.ObtenerPorCodigo(codigo);
+            if (_productoActual != null)
+                CargarProducto(_productoActual);
+            else
+            {
+                MessageBox.Show("Producto no encontrado con ese código.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                LimpiarCampos();
+            }
+        }
+
         private void CargarCategorias()
         {
             cmbCategoria.ItemsSource = _repo.ObtenerCategorias();
@@ -26,56 +56,109 @@ namespace Invetario.Views
         {
             if (string.IsNullOrWhiteSpace(txtBuscarCodigo.Text))
             {
-                MessageBox.Show("Ingrese un código de barras o nombre de producto", "Aviso",
+                MessageBox.Show("Ingrese un código de barras", "Aviso",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            string filtro = txtBuscarCodigo.Text.Trim();
-
-            // Primero intentar por código exacto
-            _productoActual = _repo.ObtenerPorCodigo(filtro);
-
-            // Si no encuentra, buscar por nombre/ID
-            if (_productoActual == null)
-            {
-                var resultados = _repo.BuscarProductos(filtro).ToList();
-
-                if (resultados.Count == 1)
-                {
-                    _productoActual = resultados[0];
-                }
-                else if (resultados.Count > 1)
-                {
-                    var seleccion = new SeleccionProductoWindow(resultados);
-                    seleccion.Owner = Window.GetWindow(this);
-                    if (seleccion.ShowDialog() == true && seleccion.ProductoSeleccionado != null)
-                    {
-                        _productoActual = seleccion.ProductoSeleccionado;
-                    }
-                    else
-                    {
-                        return;
-                    }
-                }
-            }
+            string codigo = txtBuscarCodigo.Text.Trim();
+            _productoActual = _repo.ObtenerPorCodigo(codigo);
 
             if (_productoActual != null)
-            {
-                txtNombre.Text = _productoActual.Nombre;
-                txtDescripcion.Text = _productoActual.Descripcion;
-                txtPrecio.Text = _productoActual.Precio.ToString();
-                txtStock.Text = _productoActual.Stock.ToString();
-                cmbCategoria.SelectedValue = _productoActual.CategoriaId;
-                btnActualizar.IsEnabled = true;
-                btnSumarStock.IsEnabled = true;
-            }
+                CargarProducto(_productoActual);
             else
             {
-                MessageBox.Show("Producto no encontrado", "Error",
+                MessageBox.Show("Producto no encontrado con ese código.", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 LimpiarCampos();
             }
+        }
+
+        private void txtBuscarNombre_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string texto = txtBuscarNombre.Text.Trim();
+            if (texto.Length < 2)
+            {
+                lstResultados.Visibility = Visibility.Collapsed;
+                lstResultados.ItemsSource = null;
+                return;
+            }
+
+            var resultados = _repo.BuscarProductos(texto).ToList();
+            if (resultados.Count > 0)
+            {
+                lstResultados.ItemsSource = resultados;
+                lstResultados.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lstResultados.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void lstResultados_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lstResultados.SelectedItem is Producto p)
+            {
+                _productoActual = p;
+                CargarProducto(_productoActual);
+                lstResultados.Visibility = Visibility.Collapsed;
+                txtBuscarNombre.Text = p.Nombre;
+            }
+        }
+
+        private void txtBuscarNombre_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+                BuscarPorNombre();
+        }
+
+        private void btnBuscarNombre_Click(object sender, RoutedEventArgs e)
+        {
+            BuscarPorNombre();
+        }
+
+        private void BuscarPorNombre()
+        {
+            if (string.IsNullOrWhiteSpace(txtBuscarNombre.Text))
+            {
+                MessageBox.Show("Ingrese un nombre de producto", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var resultados = _repo.BuscarProductos(txtBuscarNombre.Text.Trim()).ToList();
+
+            if (resultados.Count == 0)
+            {
+                MessageBox.Show("Producto no encontrado con ese nombre.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                lstResultados.Visibility = Visibility.Collapsed;
+                LimpiarCampos();
+                return;
+            }
+
+            if (resultados.Count == 1)
+            {
+                _productoActual = resultados[0];
+                CargarProducto(_productoActual);
+                lstResultados.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            lstResultados.ItemsSource = resultados;
+            lstResultados.Visibility = Visibility.Visible;
+        }
+
+        private void CargarProducto(Producto p)
+        {
+            txtNombre.Text = p.Nombre;
+            txtDescripcion.Text = p.Descripcion;
+            txtPrecio.Text = p.Precio.ToString();
+            txtStock.Text = p.Stock.ToString();
+            cmbCategoria.SelectedValue = p.CategoriaId;
+            btnActualizar.IsEnabled = true;
+            btnSumarStock.IsEnabled = true;
         }
 
         private void btnActualizar_Click(object sender, RoutedEventArgs e)

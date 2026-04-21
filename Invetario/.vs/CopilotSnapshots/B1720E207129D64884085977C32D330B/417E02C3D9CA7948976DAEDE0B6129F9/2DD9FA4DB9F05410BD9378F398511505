@@ -1,0 +1,250 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Invetario.Views
+{
+    public partial class ModificarProductoPage : Page
+    {
+        private readonly ProductoRepository _repo = new ProductoRepository();
+        private Producto? _productoActual;
+
+        public ModificarProductoPage()
+        {
+            InitializeComponent();
+            CargarCategorias();
+        }
+
+        private void CargarCategorias()
+        {
+            cmbCategoria.ItemsSource = _repo.ObtenerCategorias();
+        }
+
+        private void btnBuscar_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtBuscarCodigo.Text))
+            {
+                MessageBox.Show("Ingrese un código de barras", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string codigo = txtBuscarCodigo.Text.Trim();
+            _productoActual = _repo.ObtenerPorCodigo(codigo);
+
+            if (_productoActual != null)
+                CargarProducto(_productoActual);
+            else
+            {
+                MessageBox.Show("Producto no encontrado con ese código.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                LimpiarCampos();
+            }
+        }
+
+        private void txtBuscarNombre_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string texto = txtBuscarNombre.Text.Trim();
+            if (texto.Length < 2)
+            {
+                lstResultados.Visibility = Visibility.Collapsed;
+                lstResultados.ItemsSource = null;
+                return;
+            }
+
+            var resultados = _repo.BuscarProductos(texto).ToList();
+            if (resultados.Count > 0)
+            {
+                lstResultados.ItemsSource = resultados;
+                lstResultados.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lstResultados.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void lstResultados_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lstResultados.SelectedItem is Producto p)
+            {
+                _productoActual = p;
+                CargarProducto(_productoActual);
+                lstResultados.Visibility = Visibility.Collapsed;
+                txtBuscarNombre.Text = p.Nombre;
+            }
+        }
+
+        private void txtBuscarNombre_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+                BuscarPorNombre();
+        }
+
+        private void btnBuscarNombre_Click(object sender, RoutedEventArgs e)
+        {
+            BuscarPorNombre();
+        }
+
+        private void BuscarPorNombre()
+        {
+            if (string.IsNullOrWhiteSpace(txtBuscarNombre.Text))
+            {
+                MessageBox.Show("Ingrese un nombre de producto", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var resultados = _repo.BuscarProductos(txtBuscarNombre.Text.Trim()).ToList();
+
+            if (resultados.Count == 0)
+            {
+                MessageBox.Show("Producto no encontrado con ese nombre.", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                lstResultados.Visibility = Visibility.Collapsed;
+                LimpiarCampos();
+                return;
+            }
+
+            if (resultados.Count == 1)
+            {
+                _productoActual = resultados[0];
+                CargarProducto(_productoActual);
+                lstResultados.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            lstResultados.ItemsSource = resultados;
+            lstResultados.Visibility = Visibility.Visible;
+        }
+
+        private void CargarProducto(Producto p)
+        {
+            txtNombre.Text = p.Nombre;
+            txtDescripcion.Text = p.Descripcion;
+            txtPrecio.Text = p.Precio.ToString();
+            txtStock.Text = p.Stock.ToString();
+            cmbCategoria.SelectedValue = p.CategoriaId;
+            btnActualizar.IsEnabled = true;
+            btnSumarStock.IsEnabled = true;
+        }
+
+        private void btnActualizar_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(txtDescripcion.Text))
+            {
+                MessageBox.Show("La descripción no puede estar vacía.", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtPrecio.Text) || string.IsNullOrWhiteSpace(txtStock.Text))
+            {
+                MessageBox.Show("Precio y Stock no pueden estar vacíos.", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio) ||
+                !int.TryParse(txtStock.Text, out int stock))
+            {
+                MessageBox.Show("Precio y Stock deben ser valores numéricos", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (cmbCategoria.SelectedValue == null)
+            {
+                MessageBox.Show("Debe seleccionar una categoría.", "Aviso",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _productoActual.PrecioVenta = precio;
+            _productoActual.Stock = stock;
+            _productoActual.Descripcion = txtDescripcion.Text.Trim();
+            _productoActual.CategoriaId = cmbCategoria.SelectedValue is int catId ? catId : _productoActual.CategoriaId;
+
+            _repo.Actualizar(_productoActual);
+            MessageBox.Show("Producto actualizado correctamente", "Éxito",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Refrescar la lista de productos en MainWindow
+            if (Window.GetWindow(this) is MainWindow mainWindow)
+            {
+                mainWindow.RefrescarListaProductos();
+            }
+
+            LimpiarCampos();
+        }
+
+        private void btnSumarStock_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null)
+                return;
+
+            if (!int.TryParse(txtSumarStock.Text, out int cantidad) || cantidad <= 0)
+            {
+                MessageBox.Show("Ingrese una cantidad válida mayor a 0", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            _productoActual.Stock += cantidad;
+            _repo.Actualizar(_productoActual);
+
+            txtStock.Text = _productoActual.Stock.ToString();
+            txtSumarStock.Clear();
+
+            MessageBox.Show($"Se sumaron {cantidad} unidades. Stock actual: {_productoActual.Stock}", "Éxito",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+
+            if (Window.GetWindow(this) is MainWindow mainWindow)
+            {
+                mainWindow.RefrescarListaProductos();
+            }
+        }
+
+        private void btnEliminar_Click(object sender, RoutedEventArgs e)
+        {
+            if (_productoActual == null) return;
+
+            var resultado = MessageBox.Show(
+                $"¿Está seguro de eliminar el producto '{_productoActual.Nombre}'?",
+                "Confirmar eliminación", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (resultado == MessageBoxResult.Yes)
+            {
+                _repo.EliminarProducto(_productoActual.CodigoBarras);
+                MessageBox.Show("Producto eliminado correctamente.", "Éxito",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+
+                if (Window.GetWindow(this) is MainWindow mainWindow)
+                {
+                    mainWindow.RefrescarListaProductos();
+                }
+
+                LimpiarCampos();
+            }
+        }
+
+        private void LimpiarCampos()
+        {
+            txtBuscarCodigo.Clear();
+            txtNombre.Clear();
+            txtDescripcion.Clear();
+            txtPrecio.Clear();
+            txtStock.Clear();
+            cmbCategoria.SelectedIndex = -1;
+            btnActualizar.IsEnabled = false;
+            btnSumarStock.IsEnabled = false;
+            txtSumarStock.Clear();
+            _productoActual = null;
+        }
+    }
+}

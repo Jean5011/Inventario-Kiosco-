@@ -1,0 +1,74 @@
+Documentación del Proyecto "Invetario" - Reporte 8
+Cambios realizados después de la Documentación 7
+
+================================================================================
+
+CONTEXTO:
+   A partir del estado registrado en la Documentación 7, se realizó una
+   corrección puntual sobre la carga de imagen de perfil del usuario en
+   MainWindow, debido a una excepción en tiempo de ejecución al iniciar sesión.
+
+================================================================================
+
+1. Corrección de excepción al cargar foto de usuario en MainWindow
+
+   Problema reportado:
+   - Se producía una excepción:
+	 System.IO.IOException: "No se encuentra el recurso
+	 'foto%20empleado/empeado%20masculino.png'".
+   - El error ocurría al ejecutar:
+	 imgUsuario.ImageSource = new BitmapImage(new Uri(fotoPath, UriKind.Absolute));
+
+   Causa raíz:
+   - Las pack URI en MainWindow.xaml.cs apuntaban a la carpeta
+	 "Foto empleado", pero los recursos reales están en la carpeta "Assets".
+   - Por lo tanto, la ruta no coincidía con la ubicación real del recurso.
+
+   Solución aplicada:
+   - Se actualizaron las rutas de imagen en MainWindow.xaml.cs para usar
+	 la carpeta correcta:
+	 * pack://application:,,,/Assets/empleado femenino.png
+	 * pack://application:,,,/Assets/Empeado masculino.png
+
+   Resultado:
+   - La foto de perfil vuelve a cargarse correctamente al abrir MainWindow.
+   - Se elimina la excepción de recurso no encontrado durante el login.
+
+   Archivo modificado:
+   - Invetario/Views/MainWindow.xaml.cs
+
+   Estado: ✅ Aplicado y validado por compilación correcta
+
+---
+
+2. Verificación posterior al cambio
+
+   Acciones de validación:
+   - Se ejecutó compilación completa del proyecto.
+
+   Resultado:
+   - Compilación correcta, sin errores.
+
+   Estado: ✅ Validado
+
+---
+
+3. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Views/MainWindow.xaml.cs
+
+   NUEVOS:
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 8.txt
+
+---
+
+4. Estado actual del flujo principal (respecto a este ajuste)
+
+   ✅ Login abre MainWindow sin excepción por recurso de imagen
+   ✅ Foto de usuario se carga desde Assets según sexo
+   ✅ Build del proyecto exitoso
+
+================================================================================
+Documentación generada el: 2026-04-21 (hora local del desarrollador)
+================================================================================

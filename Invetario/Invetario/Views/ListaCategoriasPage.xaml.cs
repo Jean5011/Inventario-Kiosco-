@@ -1,4 +1,7 @@
 using Invetario.Data;
+using Invetario.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Controls;
 
 namespace Invetario.Views
@@ -6,6 +9,7 @@ namespace Invetario.Views
     public partial class ListaCategoriasPage : Page
     {
         private readonly ProductoRepository _repo = new ProductoRepository();
+        private List<Categoria> _todasLasCategorias = new();
 
         public ListaCategoriasPage()
         {
@@ -15,7 +19,36 @@ namespace Invetario.Views
 
         public void CargarCategorias()
         {
-            dgCategorias.ItemsSource = _repo.ObtenerCategorias().ToList();
+            _todasLasCategorias = _repo.ObtenerCategorias().ToList();
+            dgCategorias.ItemsSource = _todasLasCategorias;
+        }
+
+        private void Filtros_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            AplicarFiltros();
+        }
+
+        private void AplicarFiltros()
+        {
+            var resultado = _todasLasCategorias.AsEnumerable();
+
+            string filtroId = txtFiltroId.Text.Trim();
+            if (int.TryParse(filtroId, out int id))
+                resultado = resultado.Where(c => c.Id == id);
+
+            string filtroNombre = txtFiltroNombre.Text.Trim();
+            if (!string.IsNullOrEmpty(filtroNombre))
+                resultado = resultado.Where(c => c.Nombre.Contains(filtroNombre, System.StringComparison.OrdinalIgnoreCase));
+
+            dgCategorias.ItemsSource = resultado.ToList();
+        }
+
+        private void btnLimpiarFiltros_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            txtFiltroId.Clear();
+            txtFiltroNombre.Clear();
+            dgCategorias.ItemsSource = _todasLasCategorias;
         }
     }
 }
+

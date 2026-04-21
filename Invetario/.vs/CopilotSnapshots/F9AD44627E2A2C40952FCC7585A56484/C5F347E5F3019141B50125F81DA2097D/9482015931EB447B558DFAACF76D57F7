@@ -1,0 +1,175 @@
+﻿using Invetario.Data;
+using Invetario.Models;
+using System;
+using System.Collections.Generic;
+using System.Printing;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
+
+namespace Invetario.Views
+{
+    public partial class TicketWindow : Window
+    {
+        private readonly FlowDocument _documento;
+
+        public TicketWindow(int idVenta, DateTime fecha, decimal total, List<Producto> items)
+        {
+            InitializeComponent();
+
+            _documento = GenerarDocumento(idVenta, fecha, total, items);
+            viewerTicket.Document = _documento;
+        }
+
+        // Constructor para abrir un ticket desde reportes (carga datos de la BD)
+        public TicketWindow(int idVenta)
+        {
+            InitializeComponent();
+
+            var repo = new ProductoRepository();
+            var venta = repo.ObtenerVentaPorId(idVenta);
+
+            if (venta == null)
+            {
+                _documento = new FlowDocument();
+                _documento.Blocks.Add(new Paragraph(new Run("Venta no encontrada.")));
+                viewerTicket.Document = _documento;
+                return;
+            }
+
+            var detalles = repo.ObtenerDetallesVenta(idVenta);
+
+            _documento = GenerarDocumentoDesdeDB(idVenta, venta.FechaVenta, venta.TotalVenta, detalles);
+            viewerTicket.Document = _documento;
+        }
+
+        private FlowDocument GenerarDocumento(int idVenta, DateTime fecha, decimal total, List<Producto> items)
+        {
+            var doc = new FlowDocument
+            {
+                PageWidth = 300,
+                PagePadding = new Thickness(10),
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 11
+            };
+
+            void Linea(string texto, bool negrita = false, double size = 11, TextAlignment align = TextAlignment.Left)
+            {
+                var p = new Paragraph(new Run(texto))
+                {
+                    Margin = new Thickness(0, 1, 0, 1),
+                    FontSize = size,
+                    TextAlignment = align
+                };
+                if (negrita) p.FontWeight = FontWeights.Bold;
+                doc.Blocks.Add(p);
+            }
+
+            Linea("================================");
+            Linea("KIOSCO BERTA", true, 14, TextAlignment.Center);
+            Linea("================================");
+            Linea($"Ticket #: {idVenta}");
+            Linea($"Fecha: {fecha:dd/MM/yyyy HH:mm}");
+            Linea("--------------------------------");
+
+            foreach (var item in items)
+            {
+                Linea($"{item.Nombre}");
+                if (item.EsPesable)
+                    Linea($"  Pesable        {item.Subtotal,10:C2}");
+                else
+                    Linea($"  {item.Cantidad} x {item.PrecioVenta:C2}  {item.Subtotal,8:C2}");
+            }
+
+            Linea("--------------------------------");
+            Linea($"TOTAL:       {total:C2}", true, 13, TextAlignment.Right);
+            Linea("================================");
+            Linea("¡Gracias por su compra!", false, 11, TextAlignment.Center);
+
+            return doc;
+        }
+
+        public void ImprimirTicket()
+        {
+            try
+            {
+                var pd = new PrintDialog();
+                if (pd.ShowDialog() != true)
+                    return;
+
+                // Configuración térmica: ancho 80mm aprox (300 DIU) y largo continuo (alto grande)
+                pd.PrintTicket.PageMediaSize = new PageMediaSize(300, 2000);
+                pd.PrintTicket.PageOrientation = PageOrientation.Portrait;
+
+                // Evitar saltos innecesarios y usar el ancho real del ticket
+                _documento.PageWidth = 300;
+                _documento.PagePadding = new Thickness(0);
+
+                // Impresión visual directa del contenedor
+                pd.PrintVisual(ContenedorTicket, "Ticket de Venta");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo imprimir el ticket. Verifique impresora y conexión.\n\nDetalle: {ex.Message}",
+                    "Error de impresión", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void btnImprimir_Click(object sender, RoutedEventArgs e)
+        {
+            ImprimirTicket();
+        }
+
+        private void btnCerrar_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private FlowDocument GenerarDocumentoDesdeDB(int idVenta, DateTime fecha, decimal total, List<DetalleVentaInfo> detalles)
+        {
+            var doc = new FlowDocument
+            {
+                PageWidth = 300,
+                PagePadding = new Thickness(10),
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 11
+            };
+
+            void Linea(string texto, bool negrita = false, double size = 11, TextAlignment align = TextAlignment.Left)
+            {
+                var p = new Paragraph(new Run(texto))
+                {
+                    Margin = new Thickness(0, 1, 0, 1),
+                    FontSize = size,
+                    TextAlignment = align
+                };
+                if (negrita) p.FontWeight = FontWeights.Bold;
+                doc.Blocks.Add(p);
+            }
+
+            Linea("================================");
+            Linea("KIOSCO BERTA", true, 14, TextAlignment.Center);
+            Linea("================================");
+            Linea($"Ticket #: {idVenta}");
+            Linea($"Fecha: {fecha:dd/MM/yyyy HH:mm}");
+            Linea("--------------------------------");
+
+            foreach (var item in detalles)
+            {
+                Linea($"{item.Nombre}");
+                if (item.EsPesable)
+                    Linea($"  Pesable        {item.Preciototal,10:C2}");
+                else
+                    Linea($"  {item.Cantidad} x {item.PrecioUnitario:C2}  {item.Preciototal,8:C2}");
+            }
+
+            Linea("--------------------------------");
+            Linea($"TOTAL:       {total:C2}", true, 13, TextAlignment.Right);
+            Linea("================================");
+            Linea("¡Gracias por su compra!", false, 11, TextAlignment.Center);
+
+            return doc;
+        }
+    }
+}

@@ -1,0 +1,76 @@
+﻿-- ============================================================
+-- Script para generar TODOS los INSERT de KioscoDB
+-- Ejecutar en SSMS con Ctrl+T (Results to Text)
+-- Copiar el resultado y ejecutarlo en la BD destino
+-- ============================================================
+
+DECLARE @sql NVARCHAR(MAX) = '';
+
+-- CATEGORIAS
+SELECT @sql = @sql + 
+	'INSERT INTO Categorias (Id, Nombre, EsPesable) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(Nombre, '''', '''''') + ''', '
+	+ CAST(EsPesable AS NVARCHAR) + ');' + CHAR(13)
+FROM Categorias ORDER BY Id;
+
+-- USUARIOS
+SELECT @sql = @sql + 
+	'INSERT INTO Usuarios (Id, Username, Password, Rol, sexo, Ruta_foto, NombreReal) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(Username, '''', '''''') + ''', '
+	+ '''' + REPLACE(Password, '''', '''''') + ''', '
+	+ '''' + REPLACE(Rol, '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(sexo, ''), '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(Ruta_foto, ''), '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(NombreReal, ''), '''', '''''') + ''');' + CHAR(13)
+FROM Usuarios ORDER BY Id;
+
+-- PRODUCTOS
+SELECT @sql = @sql + 
+	'INSERT INTO Productos (Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + REPLACE(CodigoBarras, '''', '''''') + ''', '
+	+ '''' + REPLACE(Nombre, '''', '''''') + ''', '
+	+ '''' + REPLACE(ISNULL(Descripcion, ''), '''', '''''') + ''', '
+	+ CAST(PrecioCosto AS NVARCHAR) + ', '
+	+ CAST(PrecioVenta AS NVARCHAR) + ', '
+	+ CAST(CategoriaId AS NVARCHAR) + ', '
+	+ CAST(Stock AS NVARCHAR) + ');' + CHAR(13)
+FROM Productos ORDER BY Id;
+
+-- VENTAS
+SELECT @sql = @sql + 
+	'INSERT INTO Ventas (Id, FechaVenta, TotalVenta, MetodoPago) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ '''' + CONVERT(NVARCHAR, FechaVenta, 121) + ''', '
+	+ CAST(TotalVenta AS NVARCHAR) + ', '
+	+ '''' + REPLACE(ISNULL(MetodoPago, 'Efectivo'), '''', '''''') + ''');' + CHAR(13)
+FROM Ventas ORDER BY Id;
+
+-- DETALLE DE VENTAS
+SELECT @sql = @sql + 
+	'INSERT INTO DetalleVentas (Id, IdVenta, IdProducto, Cantidad, PrecioUnitario, Preciototal) VALUES ('
+	+ CAST(Id AS NVARCHAR) + ', '
+	+ CAST(IdVenta AS NVARCHAR) + ', '
+	+ CAST(IdProducto AS NVARCHAR) + ', '
+	+ CAST(Cantidad AS NVARCHAR) + ', '
+	+ CAST(PrecioUnitario AS NVARCHAR) + ', '
+	+ CAST(Preciototal AS NVARCHAR) + ');' + CHAR(13)
+FROM DetalleVentas ORDER BY Id;
+
+-- Agregar IDENTITY_INSERT al resultado
+SET @sql = 
+	'SET IDENTITY_INSERT Categorias ON;' + CHAR(13) +
+	@sql +
+	'SET IDENTITY_INSERT Categorias OFF;' + CHAR(13) +
+	'SET IDENTITY_INSERT Usuarios ON;' + CHAR(13) +
+	'SET IDENTITY_INSERT Usuarios OFF;' + CHAR(13) +
+	'SET IDENTITY_INSERT Productos ON;' + CHAR(13) +
+	'SET IDENTITY_INSERT Productos OFF;' + CHAR(13) +
+	'SET IDENTITY_INSERT Ventas ON;' + CHAR(13) +
+	'SET IDENTITY_INSERT Ventas OFF;' + CHAR(13) +
+	'SET IDENTITY_INSERT DetalleVentas ON;' + CHAR(13) +
+	'SET IDENTITY_INSERT DetalleVentas OFF;' + CHAR(13);
+
+PRINT @sql;

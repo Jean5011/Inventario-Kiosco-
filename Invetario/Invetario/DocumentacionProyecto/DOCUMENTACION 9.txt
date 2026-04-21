@@ -1,0 +1,155 @@
+Documentación del Proyecto "Invetario" - Reporte 9
+Cambios realizados después de la Documentación 8
+
+================================================================================
+
+CONTEXTO:
+   Después de la corrección de imágenes de la Documentación 8, se trabajó en
+   la integración real del escáner USB-HID (3nStar SC100) en los flujos de
+   venta y gestión de productos, se corrigieron conflictos de foco/teclado,
+   se ajustó la impresión térmica para la Gainscha GA-80xx y se aplicaron
+   mejoras críticas de seguridad e integridad de datos.
+
+================================================================================
+
+1. Integración de escáner por página (Ventas / Nuevo Producto / Modificar)
+
+   Objetivo:
+   - Permitir uso rápido del lector con Enter final en los TextBox de código.
+
+   Cambios aplicados:
+   - VentasPage:
+	 * Se implementó captura de entrada por teclado para escáner HID.
+	 * Enter procesa el código escaneado y dispara la lógica existente de alta
+	   al carrito.
+   - NuevoProductoPage:
+	 * Enter en código de barras mueve foco automáticamente a Nombre.
+   - ModificarProductoPage:
+	 * Enter en código de búsqueda dispara búsqueda directa del producto.
+
+   Estado: ✅ Aplicado
+
+---
+
+2. Corrección de bloqueo de controles por foco del escáner
+
+   Problema detectado:
+   - Botones, TextBox y listas quedaban sin respuesta por una lógica de foco
+	 demasiado agresiva al scanner.
+
+   Causa raíz:
+   - El enfoque forzado absorbía eventos de interacción del usuario.
+
+   Solución aplicada:
+   - Se reemplazó la estrategia de foco por una captura más robusta y se
+	 evitó interceptar teclas cuando el foco está en TextBox editables.
+
+   Estado: ✅ Corregido y validado
+
+---
+
+3. Ajuste final de Enter en TextBox de código de barras
+
+   Mejora aplicada:
+   - En VentasPage, el manejador global de teclado ahora no intercepta si el
+	 foco está en cualquier TextBox.
+   - Resultado: el Enter sigue su flujo normal de cada control, evitando
+	 conflictos entre escritura manual y lectura por escáner.
+
+   Estado: ✅ Aplicado
+
+---
+
+4. Ajustes de impresión térmica (Gainscha GA-80xx)
+
+   Cambios de diseño (TicketWindow.xaml):
+   - Contenedor principal del ticket con ancho fijo de 300.
+   - Márgenes/padding en 0 para maximizar ancho útil.
+   - Fuente legible (Consolas) y total en negrita.
+   - Línea separadora de guiones antes del total.
+
+   Cambios de impresión (TicketWindow.xaml.cs):
+   - Método público ImprimirTicket().
+   - Manejo de errores de impresión con try-catch.
+   - Configuración de impresión térmica y ajuste del documento para evitar
+	 recortes en tickets largos.
+
+   Estado: ✅ Aplicado y compilando
+
+---
+
+5. Endurecimiento de seguridad de usuarios (password)
+
+   Problema detectado:
+   - Contraseñas en texto plano en login/alta/edición de usuarios.
+
+   Solución aplicada:
+   - Se implementó hash PBKDF2 con salt e iteraciones para guardar contraseñas.
+   - Login valida por hash.
+   - Compatibilidad temporal con contraseñas legadas en texto plano.
+
+   Estado: ✅ Aplicado
+
+---
+
+6. Validación de stock antes de registrar venta
+
+   Problema detectado:
+   - Riesgo de stock negativo al descontar sin validar disponibilidad.
+
+   Solución aplicada:
+   - En RegistrarVenta se verifica stock por producto dentro de transacción.
+   - Si no alcanza, se lanza excepción y no se confirma la venta.
+
+   Estado: ✅ Aplicado
+
+---
+
+7. Revisión general técnica del proyecto
+
+   Acciones realizadas:
+   - Compilación global.
+   - Revisión de logs de build/debug/paquetes.
+   - Auditoría estática de archivos críticos (MainWindow, Login, Ventas,
+	 TicketWindow, ProductoRepository, Conexion, csproj).
+
+   Resultado:
+   - Compilación correcta.
+   - No se detectaron pruebas automáticas en Test Explorer.
+   - Se identificaron y corrigieron riesgos críticos priorizados.
+
+   Estado: ✅ Auditoría ejecutada
+
+---
+
+8. Resumen de archivos modificados en esta fase
+
+   MODIFICADOS:
+   - Invetario/Views/VentasPage.xaml
+   - Invetario/Views/VentasPage.xaml.cs
+   - Invetario/Views/NuevoProductoPage.xaml
+   - Invetario/Views/NuevoProductoPage.xaml.cs
+   - Invetario/Views/ModificarProductoPage.xaml
+   - Invetario/Views/ModificarProductoPage.xaml.cs
+   - Invetario/Views/TicketWindow.xaml
+   - Invetario/Views/TicketWindow.xaml.cs
+   - Invetario/Data/ProductoRepository.cs
+
+   NUEVOS:
+   - Invetario/DocumentacionProyecto/DOCUMENTACION 9.txt
+
+---
+
+9. Estado actual del flujo principal (actualizado)
+
+   ✅ Escáner HID operativo en flujo de ventas
+   ✅ Enter funcional en TextBox de código (ventas/alta/modificación)
+   ✅ UI sin bloqueo por foco del escáner
+   ✅ Impresión térmica ajustada para Gainscha GA-80xx
+   ✅ Contraseñas hasheadas con PBKDF2 (compatibilidad legado)
+   ✅ Validación de stock antes de cerrar venta
+   ✅ Build del proyecto exitoso
+
+================================================================================
+Documentación generada el: 2026-04-21 (hora local del desarrollador)
+================================================================================

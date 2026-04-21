@@ -1,0 +1,70 @@
+﻿-- ============================================
+-- Script para respaldar e insertar datos
+-- Base de datos: KioscoDB
+-- Fecha: Generado desde la aplicación Inventario
+-- ============================================
+
+-- =====================
+-- 1. CATEGORIAS
+-- =====================
+-- Habilitar IDENTITY_INSERT para insertar con Id
+SET IDENTITY_INSERT Categorias ON;
+
+INSERT INTO Categorias (Id, Nombre, EsPesable)
+SELECT Id, Nombre, EsPesable
+FROM Categorias;
+-- NOTA: Esta consulta es una plantilla. Reemplaza con los valores reales.
+-- Ejemplo:
+-- INSERT INTO Categorias (Id, Nombre, EsPesable) VALUES (1, 'Bebidas', 0);
+-- INSERT INTO Categorias (Id, Nombre, EsPesable) VALUES (2, 'Frutas', 1);
+
+SET IDENTITY_INSERT Categorias OFF;
+GO
+
+-- =====================
+-- 2. USUARIOS
+-- =====================
+SET IDENTITY_INSERT Usuarios ON;
+
+INSERT INTO Usuarios (Id, Username, Password, Rol, sexo, Ruta_foto, NombreReal)
+SELECT Id, Username, Password, Rol, sexo, Ruta_foto, NombreReal
+FROM Usuarios;
+
+SET IDENTITY_INSERT Usuarios OFF;
+GO
+
+-- =====================
+-- 3. PRODUCTOS
+-- =====================
+SET IDENTITY_INSERT Productos ON;
+
+INSERT INTO Productos (Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock)
+SELECT Id, CodigoBarras, Nombre, Descripcion, PrecioCosto, PrecioVenta, CategoriaId, Stock
+FROM Productos;
+
+SET IDENTITY_INSERT Productos OFF;
+GO
+
+-- =====================
+-- 4. VENTAS
+-- =====================
+SET IDENTITY_INSERT Ventas ON;
+
+INSERT INTO Ventas (Id, FechaVenta, TotalVenta, MetodoPago)
+SELECT Id, FechaVenta, TotalVenta, MetodoPago
+FROM Ventas;
+
+SET IDENTITY_INSERT Ventas OFF;
+GO
+
+-- =====================
+-- 5. DETALLE DE VENTAS
+-- =====================
+SET IDENTITY_INSERT DetalleVentas ON;
+
+INSERT INTO DetalleVentas (Id, IdVenta, IdProducto, Cantidad, PrecioUnitario, Preciototal)
+SELECT Id, IdVenta, IdProducto, Cantidad, PrecioUnitario, Preciototal
+FROM DetalleVentas;
+
+SET IDENTITY_INSERT DetalleVentas OFF;
+GO
