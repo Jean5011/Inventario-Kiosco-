@@ -1,0 +1,55 @@
+﻿Add-Type -AssemblyName System.Drawing
+
+$pngPath = "C:\Users\Jean Pierre\Desktop\Nueva carpeta\Inventario-Kiosco-\Invetario\Invetario\DocumentacionProyecto\Carrito.png"
+$icoPath = "C:\Users\Jean Pierre\Desktop\Nueva carpeta\Inventario-Kiosco-\Invetario\Invetario\icono.ico"
+
+$png = [System.Drawing.Image]::FromFile($pngPath)
+$sizes = @(256, 128, 64, 48, 32, 16)
+
+$ms = New-Object System.IO.MemoryStream
+$bw = New-Object System.IO.BinaryWriter($ms)
+
+# ICONDIR header
+$bw.Write([byte]0)
+$bw.Write([byte]0)
+$bw.Write([uint16]1)
+$bw.Write([uint16]$sizes.Count)
+
+$imageStreams = @()
+foreach ($size in $sizes) {
+	$bmp = New-Object System.Drawing.Bitmap($size, $size)
+	$g = [System.Drawing.Graphics]::FromImage($bmp)
+	$g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+	$g.DrawImage($png, 0, 0, $size, $size)
+	$g.Dispose()
+	$imgMs = New-Object System.IO.MemoryStream
+	$bmp.Save($imgMs, [System.Drawing.Imaging.ImageFormat]::Png)
+	$bmp.Dispose()
+	$imageStreams += $imgMs
+}
+
+$offset = 6 + $sizes.Count * 16
+
+for ($i = 0; $i -lt $sizes.Count; $i++) {
+	$s = $sizes[$i]
+	$data = $imageStreams[$i].ToArray()
+	if ($s -eq 256) { $wb = 0 } else { $wb = $s }
+	$bw.Write([byte]$wb)
+	$bw.Write([byte]$wb)
+	$bw.Write([byte]0)
+	$bw.Write([byte]0)
+	$bw.Write([uint16]1)
+	$bw.Write([uint16]32)
+	$bw.Write([uint32]$data.Length)
+	$bw.Write([uint32]$offset)
+	$offset += $data.Length
+}
+
+foreach ($imgMs in $imageStreams) {
+	$bw.Write($imgMs.ToArray())
+}
+
+$bw.Flush()
+[System.IO.File]::WriteAllBytes($icoPath, $ms.ToArray())
+$png.Dispose()
+Write-Host "ICO generado correctamente en: $icoPath"

@@ -1339,23 +1339,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\jeanp\\.nuget\\packages\\": {},
+    "C:\\Users\\Jean Pierre\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj",
+      "projectUniqueName": "C:\\Users\\Jean Pierre\\Desktop\\Nueva carpeta\\Inventario-Kiosco-\\Invetario\\Invetario\\Invetario.csproj",
       "projectName": "Invetario",
-      "projectPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\Invetario.csproj",
-      "packagesPath": "C:\\Users\\jeanp\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\jeanp\\Desktop\\Poyectos\\Inventario(KioscoBerta)\\Invetario\\Invetario\\obj\\",
+      "projectPath": "C:\\Users\\Jean Pierre\\Desktop\\Nueva carpeta\\Inventario-Kiosco-\\Invetario\\Invetario\\Invetario.csproj",
+      "packagesPath": "C:\\Users\\Jean Pierre\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Jean Pierre\\Desktop\\Nueva carpeta\\Inventario-Kiosco-\\Invetario\\Invetario\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\jeanp\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Jean Pierre\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
